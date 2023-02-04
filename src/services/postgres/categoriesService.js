@@ -1,5 +1,5 @@
 const { Pool } = require('pg')
-const { customAlphabet } = require('nanoid')
+const nanoid = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const { mapCategoryDBToModel } = require('../../utils')
@@ -10,9 +10,7 @@ class CategoriesService {
   }
 
   async addCategory({ name }) {
-    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 10)
-
-    const id = `category-${nanoid()}`
+    const id = `category-${nanoid(24)}`
     const createdAt = Date.now()
 
     const query = {

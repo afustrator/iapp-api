@@ -1,5 +1,5 @@
 const { Pool } = require('pg')
-const { customAlphabet } = require('nanoid')
+const nanoid = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const { mapProductsDBToModel } = require('../../utils')
 const NotFoundError = require('../../exceptions/NotFoundError')
@@ -17,8 +17,7 @@ class ProductsService {
     categoryId,
     expireDate
   }) {
-    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 10)
-    const id = `product-${nanoid()}`
+    const id = `product-${nanoid(24)}`
     const createdAt = Date.now()
     const inputDate = Date.now()
 
