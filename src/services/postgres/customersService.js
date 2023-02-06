@@ -1,5 +1,5 @@
 const { Pool } = require('pg')
-const nanoid = require('nanoid')
+const { nanoid, customAlphabet } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const { mapCustomerDBToModel } = require('../../utils')
@@ -10,12 +10,23 @@ class CustomersService {
   }
 
   async addCustomer({ customerName, address, phoneNumber }) {
+    const generateCustomerCode = customAlphabet('1234567890', 10)
+
     const id = `customer-${nanoid(24)}`
+    const customerCode = `C${generateCustomerCode()}`
     const createdAt = Date.now()
 
     const query = {
-      text: 'INSERT INTO customers VALUES($1, $2, $3, $4, $5, $6) RETURNING id',
-      values: [id, customerName, address, phoneNumber, createdAt, createdAt]
+      text: 'INSERT INTO customers VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      values: [
+        id,
+        customerCode,
+        customerName,
+        address,
+        phoneNumber,
+        createdAt,
+        createdAt
+      ]
     }
 
     const result = await this._pool.query(query)

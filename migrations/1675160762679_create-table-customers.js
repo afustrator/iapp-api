@@ -5,6 +5,10 @@ exports.up = (pgm) => {
       primaryKey: true,
       notNull: true
     },
+    customer_code: {
+      type: 'VARCHAR(255)',
+      notNull: true
+    },
     customer_name: {
       type: 'VARCHAR(255)',
       notNull: true

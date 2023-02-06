@@ -8,19 +8,25 @@ const mapCategoryDBToModel = ({ id, name, created_at, updated_at }) => ({
 
 const mapProductsDBToModel = ({
   id,
+  product_code,
   product_name,
+  brand,
   stock,
   capital_price,
   selling_price,
+  discount,
   category_id,
   expire_date,
   input_date
 }) => ({
   id,
+  productCode: product_code,
   productName: product_name,
+  brand,
   stock,
   capitalPrice: capital_price,
   sellingPrice: selling_price,
+  discount,
   categoryId: category_id,
   expireDate: expire_date,
   inputDate: input_date
@@ -28,10 +34,13 @@ const mapProductsDBToModel = ({
 
 const mapProductDBToModel = ({
   id,
+  product_code,
   product_name,
+  brand,
   stock,
   capital_price,
   selling_price,
+  discount,
   category_id,
   expire_date,
   input_date,
@@ -39,10 +48,13 @@ const mapProductDBToModel = ({
   updated_at
 }) => ({
   id,
+  productCode: product_code,
   productName: product_name,
+  brand,
   stock,
   capitalPrice: capital_price,
   sellingPrice: selling_price,
+  discount,
   categoryId: category_id,
   expireDate: expire_date,
   inputDate: input_date,

@@ -12,18 +12,22 @@ class ProductsHandler {
     this._validator.validatePostProductPayload(request.payload)
     const {
       productName,
+      brand,
       stock,
       capitalPrice,
       sellingPrice,
+      discount,
       categoryId,
       expireDate
     } = request.payload
 
     const product = await this._service.addProduct({
       productName,
+      brand,
       stock,
       capitalPrice,
       sellingPrice,
+      discount,
       categoryId,
       expireDate
     })
@@ -66,13 +70,16 @@ class ProductsHandler {
   async putProductByIdHandler(request) {
     this._validator.validatePutProductPayload(request.payload)
     const { productId } = request.params
-    const { productName, stock, capitalPrice, sellingPrice } = request.payload
+    const { productName, brand, stock, capitalPrice, sellingPrice, discount } =
+      request.payload
 
     await this._service.updateProductById(productId, {
       productName,
+      brand,
       stock,
       capitalPrice,
-      sellingPrice
+      sellingPrice,
+      discount
     })
 
     return {

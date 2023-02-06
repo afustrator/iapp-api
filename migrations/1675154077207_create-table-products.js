@@ -5,7 +5,15 @@ exports.up = (pgm) => {
       primaryKey: true,
       notNull: true
     },
+    product_code: {
+      type: 'VARCHAR(255)',
+      notNull: true
+    },
     product_name: {
+      type: 'VARCHAR(255)',
+      notNull: true
+    },
+    brand: {
       type: 'VARCHAR(255)',
       notNull: true
     },
@@ -14,12 +22,15 @@ exports.up = (pgm) => {
       notNull: true
     },
     capital_price: {
-      type: 'BIGINT',
+      type: 'INTEGER',
       notNull: true
     },
     selling_price: {
-      type: 'BIGINT',
+      type: 'INTEGER',
       notNull: true
+    },
+    discount: {
+      type: 'SMALLINT'
     },
     category_id: {
       type: 'VARCHAR(50)'
