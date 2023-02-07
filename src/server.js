@@ -7,18 +7,23 @@ const laabr = require(Laabr)
 
 /** Categories */
 const categories = require('./api/categories')
-const CategoriesService = require('../src/services/postgres/categoriesService')
+const CategoriesService = require('../src/services/postgres/CategoriesService')
 const CategoriesValidator = require('../src/validator/categories')
 
 /** Products */
 const products = require('./api/products')
-const ProductsService = require('../src/services/postgres/productsService')
+const ProductsService = require('../src/services/postgres/ProductsService')
 const ProductsValidator = require('../src/validator/products')
 
 /** Customers */
 const customers = require('./api/customers')
-const CustomersService = require('../src/services/postgres/customersService')
+const CustomersService = require('../src/services/postgres/CustomersService')
 const CustomersValidator = require('../src/validator/customers')
+
+/** Users */
+const users = require('./api/users')
+const UsersService = require('../src/services/postgres/UsersService')
+const UsersValidator = require('../src/validator/users')
 
 const server = Hapi.server({
   host: process.env.HOST,
@@ -35,6 +40,7 @@ const init = async () => {
   const categoriesService = new CategoriesService()
   const productsService = new ProductsService()
   const customersService = new CustomersService()
+  const usersService = new UsersService()
 
   server.route([
     {
@@ -114,6 +120,13 @@ const init = async () => {
       options: {
         service: customersService,
         validator: CustomersValidator
+      }
+    },
+    {
+      plugin: users,
+      options: {
+        service: usersService,
+        validator: UsersValidator
       }
     }
   ])
