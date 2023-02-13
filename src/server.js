@@ -1,29 +1,37 @@
 require('dotenv').config()
 
 const Hapi = require('@hapi/hapi')
-const ClientError = require('./exceptions/ClientError')
+const Jwt = require('@hapi/jwt')
 const Laabr = 'laabr'
 const laabr = require(Laabr)
 
+const ClientError = require('./exceptions/ClientError')
+
 /** Categories */
 const categories = require('./api/categories')
-const CategoriesService = require('../src/services/postgres/CategoriesService')
-const CategoriesValidator = require('../src/validator/categories')
+const CategoriesService = require('./services/postgres/CategoriesService')
+const CategoriesValidator = require('./validator/categories')
 
 /** Products */
 const products = require('./api/products')
-const ProductsService = require('../src/services/postgres/ProductsService')
-const ProductsValidator = require('../src/validator/products')
+const ProductsService = require('./services/postgres/ProductsService')
+const ProductsValidator = require('./validator/products')
 
 /** Customers */
 const customers = require('./api/customers')
-const CustomersService = require('../src/services/postgres/CustomersService')
-const CustomersValidator = require('../src/validator/customers')
+const CustomersService = require('./services/postgres/CustomersService')
+const CustomersValidator = require('./validator/customers')
 
 /** Users */
 const users = require('./api/users')
-const UsersService = require('../src/services/postgres/UsersService')
-const UsersValidator = require('../src/validator/users')
+const UsersService = require('./services/postgres/UsersService')
+const UsersValidator = require('./validator/users')
+
+/** Authentications */
+const authentications = require('./api/authentications')
+const AuthenticationsService = require('./services/postgres/AuthenticationsService')
+const TokenManager = require('./tokenize/TokenManager')
+const AuthenticationsValidator = require('./validator/authentications')
 
 const server = Hapi.server({
   host: process.env.HOST,
@@ -41,6 +49,10 @@ const init = async () => {
   const productsService = new ProductsService()
   const customersService = new CustomersService()
   const usersService = new UsersService()
+  const authenticationsService = new AuthenticationsService()
+
+  /** Route Prefix */
+  const prefix = (server.realm.modifiers.route.prefix = '/api/v1')
 
   server.route([
     {
@@ -98,6 +110,30 @@ const init = async () => {
     return h.continue
   })
 
+  /** Register Plugin Eksternal */
+  await server.register([
+    {
+      plugin: Jwt
+    }
+  ])
+
+  // mendefinisikan strategy autentikasi jwt
+  server.auth.strategy('iapp_jwt', 'jwt', {
+    keys: process.env.ACCESS_TOKEN_KEY,
+    verify: {
+      aud: false,
+      iss: false,
+      sub: false,
+      maxAgeSec: process.env.ACCESS_TOKEN_AGE
+    },
+    validate: (artifacts) => ({
+      isValid: true,
+      credentials: {
+        id: artifacts.decoded.payload.id
+      }
+    })
+  })
+
   /** Register API Plugins */
   await server.register([
     {
@@ -111,7 +147,7 @@ const init = async () => {
     {
       plugin: products,
       options: {
-        service: productsService,
+        productsService,
         validator: ProductsValidator
       }
     },
@@ -128,6 +164,15 @@ const init = async () => {
         service: usersService,
         validator: UsersValidator
       }
+    },
+    {
+      plugin: authentications,
+      options: {
+        authenticationsService,
+        usersService,
+        tokenManager: TokenManager,
+        validator: AuthenticationsValidator
+      }
     }
   ])
 
@@ -135,7 +180,11 @@ const init = async () => {
   await server.register({
     plugin: laabr,
     options: {
-      colored: true
+      colored: true,
+      formats: {
+        onPostStart: `${new Date().toLocaleString()} :level :message at :host[uri]${prefix}`,
+        response: ':time :method :url :status :payload (:responseTime ms)'
+      }
     }
   })
 

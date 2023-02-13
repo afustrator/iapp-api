@@ -1,8 +1,8 @@
 const autoBind = require('auto-bind')
 
 class ProductsHandler {
-  constructor(service, validator) {
-    this._service = service
+  constructor(productsService, validator) {
+    this._productsService = productsService
     this._validator = validator
 
     autoBind(this)
@@ -20,8 +20,9 @@ class ProductsHandler {
       categoryId,
       expireDate
     } = request.payload
+    const { id: credentialId } = request.auth.credentials
 
-    const product = await this._service.addProduct({
+    const productId = await this._productsService.addProduct({
       productName,
       brand,
       stock,
@@ -29,14 +30,15 @@ class ProductsHandler {
       sellingPrice,
       discount,
       categoryId,
-      expireDate
+      expireDate,
+      owner: credentialId
     })
 
     const response = h.response({
       status: 'success',
       message: 'Berhasil menambahkan produk',
       data: {
-        product
+        productId
       }
     })
     response.code(201)
@@ -44,8 +46,9 @@ class ProductsHandler {
   }
 
   async getProductsHandler(request) {
-    const { product_name: productName } = request.query
-    const products = await this._service.getProducts({ productName })
+    const { id: credentialId } = request.auth.credentials
+
+    const products = await this._productsService.getProducts(credentialId)
 
     return {
       status: 'success',
@@ -57,7 +60,10 @@ class ProductsHandler {
 
   async getProductByIdHandler(request) {
     const { productId } = request.params
-    const product = await this._service.getProductById(productId)
+    const { id: credentialId } = request.auth.credentials
+
+    await this._productsService.verifyProductOwner(productId, credentialId)
+    const product = await this._productsService.getProductById(productId)
 
     return {
       status: 'success',
@@ -70,10 +76,13 @@ class ProductsHandler {
   async putProductByIdHandler(request) {
     this._validator.validatePutProductPayload(request.payload)
     const { productId } = request.params
+    const { id: credentialId } = request.auth.credentials
+
     const { productName, brand, stock, capitalPrice, sellingPrice, discount } =
       request.payload
 
-    await this._service.updateProductById(productId, {
+    await this._productsService.verifyProductOwner(productId, credentialId)
+    await this._productsService.updateProductById(productId, {
       productName,
       brand,
       stock,
@@ -90,8 +99,10 @@ class ProductsHandler {
 
   async deleteProductByIdHandler(request) {
     const { productId } = request.params
+    const { id: credentialId } = request.auth.credentials
 
-    await this._service.deleteProductById(productId)
+    await this._productsService.verifyProductOwner(productId, credentialId)
+    await await this._productsService.deleteProductById(productId)
     return {
       status: 'success',
       message: 'Berhasil menghapus produk'

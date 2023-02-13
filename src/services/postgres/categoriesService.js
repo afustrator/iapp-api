@@ -2,6 +2,7 @@ const { Pool } = require('pg')
 const { nanoid } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
+const AuthorizationError = require('../../exceptions/AuthorizationError')
 const { mapCategoryDBToModel } = require('../../utils')
 
 class CategoriesService {
@@ -9,13 +10,13 @@ class CategoriesService {
     this._pool = new Pool()
   }
 
-  async addCategory({ name }) {
+  async addCategory({ name, owner }) {
     const id = `category-${nanoid(24)}`
     const createdAt = Date.now()
 
     const query = {
-      text: 'INSERT INTO category VALUES($1, $2, $3, $4) RETURNING id',
-      values: [id, name, createdAt, createdAt]
+      text: 'INSERT INTO category VALUES($1, $2, $3, $4, $5) RETURNING id',
+      values: [id, name, createdAt, createdAt, owner]
     }
 
     const result = await this._pool.query(query)
@@ -27,10 +28,14 @@ class CategoriesService {
     return result.rows[0].id
   }
 
-  async getCategories() {
-    const result = await this._pool.query(`
-      SELECT id, name, created_at, updated_at FROM category
-    `)
+  async getCategories(owner) {
+    const query = {
+      text: 'SELECT * FROM category WHERE owner = $1',
+      values: [owner]
+    }
+
+    const result = await this._pool.query(query)
+
     return result.rows.map(mapCategoryDBToModel)
   }
 
@@ -74,6 +79,25 @@ class CategoriesService {
 
     if (!result.rows.length) {
       throw new NotFoundError('Gagal menghapus kategori. Id tidak ditemukan')
+    }
+  }
+
+  async verifyCategoryOwner(id, owner) {
+    const query = {
+      text: 'SELECT * FROM category WHERE id = $1',
+      values: [id]
+    }
+
+    const result = await this._pool.query(query)
+
+    if (!result.rows.length) {
+      throw new NotFoundError('Kategori tidak ditemukan')
+    }
+
+    const category = result.rows[0]
+
+    if (category.owner !== owner) {
+      throw new AuthorizationError('Anda tidak berhak mengakses resource ini')
     }
   }
 }
