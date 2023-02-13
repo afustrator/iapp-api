@@ -57,7 +57,7 @@ class ProductsService {
     return result.rows[0].id
   }
 
-  async getProducts(owner) {
+  async getProducts(owner, { productName = '' }) {
     const query = {
       text: `
       SELECT
@@ -65,8 +65,8 @@ class ProductsService {
       products.stock, products.capital_price, products.selling_price, products.discount, 
       products.category_id, products.expire_date, products.input_date
       FROM products
-      WHERE products.owner = $1`,
-      values: [owner]
+      WHERE owner = $1 AND LOWER(product_name) LIKE $2`,
+      values: [owner, `%${productName}%`]
     }
 
     const result = await this._pool.query(query)
