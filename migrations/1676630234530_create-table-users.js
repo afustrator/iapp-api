@@ -1,11 +1,20 @@
 exports.up = (pgm) => {
-  pgm.createTable('category', {
+  pgm.createTable('users', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
       notNull: true
     },
-    name: {
+    username: {
+      type: 'VARCHAR(255)',
+      unique: true,
+      notNull: true
+    },
+    password: {
+      type: 'VARCHAR(255)',
+      notNull: true
+    },
+    fullname: {
       type: 'VARCHAR(255)',
       notNull: true
     },
@@ -21,5 +30,5 @@ exports.up = (pgm) => {
 }
 
 exports.down = (pgm) => {
-  pgm.dropTable('category')
+  pgm.dropTable('users')
 }

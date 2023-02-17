@@ -10,41 +10,28 @@ class ProductsService {
     this._pool = new Pool()
   }
 
-  async addProduct({
-    productName,
-    brand,
-    stock,
-    capitalPrice,
-    sellingPrice,
-    discount,
-    categoryId,
-    expireDate,
-    owner
-  }) {
+  async addProduct({ name, stock, price, categoryId, expireDate, owner }) {
     const generateProductCode = customAlphabet('1234567890', 14)
 
     const id = `product-${nanoid(24)}`
-    const productCode = `P${generateProductCode()}`
+    const barcode = `P${generateProductCode()}`
     const createdAt = Date.now()
     const inputDate = Date.now()
 
     const query = {
-      text: 'INSERT INTO products VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id',
+      text: 'INSERT INTO products VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
       values: [
         id,
-        productCode,
-        productName,
-        brand,
+        barcode,
+        name,
         stock,
-        capitalPrice,
-        sellingPrice,
-        discount,
+        price,
         categoryId,
         expireDate,
         inputDate,
+        owner,
         createdAt,
-        createdAt,
-        owner
+        createdAt
       ]
     }
 
@@ -57,16 +44,29 @@ class ProductsService {
     return result.rows[0].id
   }
 
-  async getProducts(owner, { productName = '' }) {
+  async getProducts(owner, { name = '' }) {
     const query = {
       text: `
       SELECT
-      products.id, products.product_code, products.product_name, products.brand, 
-      products.stock, products.capital_price, products.selling_price, products.discount, 
-      products.category_id, products.expire_date, products.input_date
+      id, barcode, name, stock, price, category_id, expire_date, input_date
       FROM products
-      WHERE owner = $1 AND LOWER(product_name) LIKE $2`,
-      values: [owner, `%${productName}%`]
+      WHERE owner = $1 AND LOWER(name) LIKE $2`,
+      values: [owner, `%${name}%`]
+    }
+
+    const result = await this._pool.query(query)
+
+    return result.rows.map(mapProductsDBToModel)
+  }
+
+  async getProductsByCategoryId({ categoryId }) {
+    const query = {
+      text: `
+      SELECT
+      id, barcode, name, stock, price, category_id, expire_date, input_date
+      FROM products
+      WHERE category_id = $1`,
+      values: [categoryId]
     }
 
     const result = await this._pool.query(query)
@@ -78,10 +78,7 @@ class ProductsService {
     const query = {
       text: `
       SELECT
-      products.id, products.product_code, products.product_name, products.brand, 
-      products.stock, products.capital_price, products.selling_price, products.discount,
-      products.category_id, products.expire_date, products.input_date, 
-      products.created_at, products. updated_at
+      id, barcode, name, stock, price, category_id, expire_date, input_date, created_at, updated_at
       FROM products
       WHERE id = $1`,
       values: [productId]
@@ -96,21 +93,10 @@ class ProductsService {
     return result.rows[0]
   }
 
-  async updateProductById(
-    productId,
-    { productName, brand, stock, capitalPrice, sellingPrice, discount }
-  ) {
+  async updateProductById(productId, { name, stock, price }) {
     const query = {
-      text: 'UPDATE products SET product_name = $1, brand = $2, stock = $3, capital_price = $4, selling_price = $5, discount = $6 WHERE id = $7 RETURNING id',
-      values: [
-        productName,
-        brand,
-        stock,
-        capitalPrice,
-        sellingPrice,
-        discount,
-        productId
-      ]
+      text: 'UPDATE products SET name = $1, stock = $2, price = $3 WHERE id = $4 RETURNING id',
+      values: [name, stock, price, productId]
     }
 
     const result = await this._pool.query(query)

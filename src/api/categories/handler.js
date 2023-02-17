@@ -48,7 +48,9 @@ class CategoriesHandler {
 
     await this._categoriesService.verifyCategoryOwner(categoryId, credentialId)
     const category = await this._categoriesService.getCategoryById(categoryId)
-    const product = await this._productsService.getProducts({ categoryId })
+    const product = await this._productsService.getProductsByCategoryId({
+      categoryId
+    })
     return {
       status: 'success',
       data: {

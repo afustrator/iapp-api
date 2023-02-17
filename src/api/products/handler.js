@@ -10,25 +10,13 @@ class ProductsHandler {
 
   async postProductHandler(request, h) {
     this._validator.validatePostProductPayload(request.payload)
-    const {
-      productName,
-      brand,
-      stock,
-      capitalPrice,
-      sellingPrice,
-      discount,
-      categoryId,
-      expireDate
-    } = request.payload
+    const { name, stock, price, categoryId, expireDate } = request.payload
     const { id: credentialId } = request.auth.credentials
 
     const productId = await this._productsService.addProduct({
-      productName,
-      brand,
+      name,
       stock,
-      capitalPrice,
-      sellingPrice,
-      discount,
+      price,
       categoryId,
       expireDate,
       owner: credentialId
@@ -47,10 +35,10 @@ class ProductsHandler {
 
   async getProductsHandler(request) {
     const { id: credentialId } = request.auth.credentials
-    const { product_name: productName } = request.query
+    const { name } = request.query
 
     const products = await this._productsService.getProducts(credentialId, {
-      productName
+      name
     })
 
     return {
@@ -81,17 +69,13 @@ class ProductsHandler {
     const { productId } = request.params
     const { id: credentialId } = request.auth.credentials
 
-    const { productName, brand, stock, capitalPrice, sellingPrice, discount } =
-      request.payload
+    const { name, stock, price } = request.payload
 
     await this._productsService.verifyProductOwner(productId, credentialId)
     await this._productsService.updateProductById(productId, {
-      productName,
-      brand,
+      name,
       stock,
-      capitalPrice,
-      sellingPrice,
-      discount
+      price
     })
 
     return {

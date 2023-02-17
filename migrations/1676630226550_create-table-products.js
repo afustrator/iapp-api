@@ -5,15 +5,11 @@ exports.up = (pgm) => {
       primaryKey: true,
       notNull: true
     },
-    product_code: {
+    barcode: {
       type: 'VARCHAR(255)',
       notNull: true
     },
-    product_name: {
-      type: 'VARCHAR(255)',
-      notNull: true
-    },
-    brand: {
+    name: {
       type: 'VARCHAR(255)',
       notNull: true
     },
@@ -21,16 +17,9 @@ exports.up = (pgm) => {
       type: 'INTEGER',
       notNull: true
     },
-    capital_price: {
+    price: {
       type: 'INTEGER',
       notNull: true
-    },
-    selling_price: {
-      type: 'INTEGER',
-      notNull: true
-    },
-    discount: {
-      type: 'SMALLINT'
     },
     category_id: {
       type: 'VARCHAR(50)'
@@ -42,6 +31,9 @@ exports.up = (pgm) => {
     input_date: {
       type: 'BIGINT',
       notNull: true
+    },
+    owner: {
+      type: 'VARCHAR(50)'
     },
     created_at: {
       type: 'BIGINT',
@@ -55,8 +47,8 @@ exports.up = (pgm) => {
 
   pgm.addConstraint(
     'products',
-    'fk_products.category_id_category.id',
-    'FOREIGN KEY(category_id) REFERENCES category(id) ON DELETE CASCADE'
+    'fk_products.category_id_categories.id',
+    'FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE'
   )
 }
 

@@ -17,11 +17,6 @@ const products = require('./api/products')
 const ProductsService = require('./services/postgres/ProductsService')
 const ProductsValidator = require('./validator/products')
 
-/** Customers */
-const customers = require('./api/customers')
-const CustomersService = require('./services/postgres/CustomersService')
-const CustomersValidator = require('./validator/customers')
-
 /** Users */
 const users = require('./api/users')
 const UsersService = require('./services/postgres/UsersService')
@@ -47,7 +42,6 @@ const init = async () => {
   /** Initialize Services */
   const categoriesService = new CategoriesService()
   const productsService = new ProductsService()
-  const customersService = new CustomersService()
   const usersService = new UsersService()
   const authenticationsService = new AuthenticationsService()
 
@@ -149,13 +143,6 @@ const init = async () => {
       options: {
         productsService,
         validator: ProductsValidator
-      }
-    },
-    {
-      plugin: customers,
-      options: {
-        service: customersService,
-        validator: CustomersValidator
       }
     },
     {

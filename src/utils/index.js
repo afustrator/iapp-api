@@ -1,33 +1,25 @@
 /* eslint-disable camelcase */
-const mapCategoryDBToModel = ({ id, name, created_at, updated_at, owner }) => ({
+const mapCategoryDBToModel = ({ id, name, owner, created_at, updated_at }) => ({
   id,
   name,
+  owner,
   createdAt: created_at,
-  updatedAt: updated_at,
-  owner
+  updatedAt: updated_at
 })
 
 const mapProductsDBToModel = ({
   id,
-  product_code,
-  product_name,
-  brand,
+  name,
   stock,
-  capital_price,
-  selling_price,
-  discount,
+  price,
   category_id,
   expire_date,
   input_date
 }) => ({
   id,
-  productCode: product_code,
-  productName: product_name,
-  brand,
+  name,
   stock,
-  capitalPrice: capital_price,
-  sellingPrice: selling_price,
-  discount,
+  price,
   categoryId: category_id,
   expireDate: expire_date,
   inputDate: input_date
@@ -35,13 +27,9 @@ const mapProductsDBToModel = ({
 
 const mapProductDBToModel = ({
   id,
-  product_code,
-  product_name,
-  brand,
+  name,
   stock,
-  capital_price,
-  selling_price,
-  discount,
+  price,
   category_id,
   expire_date,
   input_date,
@@ -49,13 +37,9 @@ const mapProductDBToModel = ({
   updated_at
 }) => ({
   id,
-  productCode: product_code,
-  productName: product_name,
-  brand,
+  name,
   stock,
-  capitalPrice: capital_price,
-  sellingPrice: selling_price,
-  discount,
+  price,
   categoryId: category_id,
   expireDate: expire_date,
   inputDate: input_date,
@@ -63,25 +47,8 @@ const mapProductDBToModel = ({
   updatedAt: updated_at
 })
 
-const mapCustomerDBToModel = ({
-  id,
-  customer_name,
-  address,
-  phone_number,
-  created_at,
-  updated_at
-}) => ({
-  id,
-  customerName: customer_name,
-  address,
-  phoneNumber: phone_number,
-  createdAt: created_at,
-  updatedAt: updated_at
-})
-
 module.exports = {
   mapCategoryDBToModel,
   mapProductsDBToModel,
-  mapProductDBToModel,
-  mapCustomerDBToModel
+  mapProductDBToModel
 }

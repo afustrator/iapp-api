@@ -15,8 +15,8 @@ class CategoriesService {
     const createdAt = Date.now()
 
     const query = {
-      text: 'INSERT INTO category VALUES($1, $2, $3, $4, $5) RETURNING id',
-      values: [id, name, createdAt, createdAt, owner]
+      text: 'INSERT INTO categories VALUES($1, $2, $3, $4, $5) RETURNING id',
+      values: [id, name, owner, createdAt, createdAt]
     }
 
     const result = await this._pool.query(query)
@@ -30,7 +30,7 @@ class CategoriesService {
 
   async getCategories(owner) {
     const query = {
-      text: 'SELECT * FROM category WHERE owner = $1',
+      text: 'SELECT * FROM categories WHERE owner = $1',
       values: [owner]
     }
 
@@ -41,7 +41,7 @@ class CategoriesService {
 
   async getCategoryById(categoryId) {
     const query = {
-      text: 'SELECT * FROM category WHERE id = $1',
+      text: 'SELECT * FROM categories WHERE id = $1',
       values: [categoryId]
     }
 
@@ -58,7 +58,7 @@ class CategoriesService {
     const updatedAt = Date.now()
 
     const query = {
-      text: 'UPDATE category SET name = $1, updated_at = $2 WHERE id = $3 RETURNING id',
+      text: 'UPDATE categories SET name = $1, updated_at = $2 WHERE id = $3 RETURNING id',
       values: [name, updatedAt, categoryId]
     }
 
@@ -71,7 +71,7 @@ class CategoriesService {
 
   async deleteCategoryById(categoryId) {
     const query = {
-      text: 'DELETE FROM category WHERE id = $1 RETURNING id',
+      text: 'DELETE FROM categories WHERE id = $1 RETURNING id',
       values: [categoryId]
     }
 
@@ -84,7 +84,7 @@ class CategoriesService {
 
   async verifyCategoryOwner(id, owner) {
     const query = {
-      text: 'SELECT * FROM category WHERE id = $1',
+      text: 'SELECT * FROM categories WHERE id = $1',
       values: [id]
     }
 
