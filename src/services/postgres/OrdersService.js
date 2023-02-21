@@ -1,139 +1,101 @@
-// const { Pool } = require('pg')
-// const { nanoid, customAlphabet } = require('nanoid')
-// const InvariantError = require('../../exceptions/InvariantError')
+const { Pool } = require('pg')
+const { nanoid, customAlphabet } = require('nanoid')
+const InvariantError = require('../../exceptions/InvariantError')
 
-// class OrdersService {
-//   constructor() {
-//     this._pool = new Pool()
-//   }
+class OrdersService {
+  constructor() {
+    this._pool = new Pool()
+  }
 
-//   async addOrder({ items, itemQuantity, sellingPrice, userId, discount }) {
-//     //* Cek Stok */
-//     const stockQuery = await this._pool.query(`
-//       SELECT stock FROM products
-//       WHERE id IN (${items.map((i) => `'${i.productId}'`).join()})`)
-//     const stocks = stockQuery.rows
-//     const itemWithStock = items.map((item) => ({
-//       ...item,
-//       stock: stocks.find((sp) => sp.id === item.productId).stock,
-//       order: stocks.find((sp) => sp.id === item.productId).order
-//     }))
-//     const checkStock = itemWithStock
-//       .map((iws) => +iws.stock - +iws.quantity)
-//       .every((i) => i >= 0)
-//     if (!checkStock) {
-//       throw new InvariantError('Transaksi gagal: Stok tidak cukup')
-//     }
+  async addOrder({ userId, name, address, phone, items }) {
+    const generateInvoice = customAlphabet('1234567890', 10)
 
-//     const client = await this._pool.connect()
-//     try {
-//       await client.query('BEGIN')
+    //* Check Stock */
+    const stocksQuery = await this._pool.query(`
+      SELECT product_id, stock, sale
+      FROM stocks 
+      WHERE product_id
+      IN (${items.map((i) => `'${i.productId}'`).join()})`)
+    const stocks = stocksQuery.rows
+    const itemsWithStock = items.map((item) => ({
+      ...item,
+      stock: stocks.find((sp) => sp.product_id === item.productId).stock,
+      sale: stocks.find((sp) => sp.product_id === item.productId).sale
+    }))
+    const checkStock = itemsWithStock
+      .map((iws) => +iws.stock - +iws.quantity)
+      .every((i) => i >= 0)
+    if (!checkStock) {
+      throw new InvariantError('Transaksi gagal: Stok tidak cukup')
+    }
 
-//       const generateInvoice = customAlphabet('1234567890', 14)
+    const client = await this._pool.connect()
 
-//       const id = `order-${nanoid(24)}`
-//       const invoice = `INV${generateInvoice()}`
-//       const createdAt = Date.now()
-//       const totalPrice = itemQuantity * sellingPrice
+    //* Order */
+    try {
+      await client.query('BEGIN')
 
-//       const orderQuery = {
-//         text: `INSERT INTO order_details
-//           VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-//         values: [
-//           id,
-//           invoice,
-//           items,
-//           itemQuantity,
-//           sellingPrice,
-//           totalPrice,
-//           createdAt,
-//           createdAt
-//         ]
-//       }
+      const id = `order-${nanoid(16)}`
+      const invoice = `INV${generateInvoice()}`
+      const createdAt = Date.now()
 
-//       const order = await this._pool.query(orderQuery)
-//       const orderId = order.rows[0].id
+      const orderQuery = {
+        text: 'INSERT INTO orders(id, user_id, invoice, name, address, phone, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+        values: [
+          id,
+          userId,
+          invoice,
+          name,
+          address,
+          phone,
+          createdAt,
+          createdAt
+        ]
+      }
 
-//       await itemWithStock.map(async (item) => {
-//         await client.query(
-//           `UPDATE products SET stock = '${
-//             +item.stock - +item.quantity
-//           }' WHERE id = '${item.productId}'`
-//         )
+      const order = await client.query(orderQuery)
+      const orderId = order.rows[0].id
 
-//         const itemQuery = {
-//           text: `INSERT INTO orders(id, invoice, user_id, stock_quantity, discount, total_price, created_at, updated_at) VALUES('${orderId}', '${invoice}', '${userId}', '${item.quantity}', '${discount}', '${totalPrice}', '${createdAt}', '${createdAt}')`
-//         }
+      await itemsWithStock.map(async (item) => {
+        const id = `orderItem-${nanoid(14)}`
 
-//         await client.query(itemQuery)
-//       })
+        await client.query(`
+          UPDATE stocks
+          SET
+          stock = '${+item.stock - +item.quantity}', 
+          sale = '${+item.sale + +item.quantity}'
+          WHERE product_id = '${item.productId}'
+        `)
 
-//       await client.query('COMMIT')
+        const itemQuery = {
+          text: `
+            INSERT INTO
+            order_items(id, order_id, product_id, quantity, price, created_at, updated_at)
+            VALUES($1, $2, $3, $4, $5, $6, $7)`,
+          values: [
+            id,
+            orderId,
+            item.productId,
+            item.quantity,
+            item.price,
+            createdAt,
+            createdAt
+          ]
+        }
 
-//       return orderId
-//     } catch (error) {
-//       await client.query('ROLLBACK')
-//       throw new InvariantError(`Transaksi gagal: ${error.message}`)
-//     } finally {
-//       client.release()
-//     }
+        await client.query(itemQuery)
+      })
 
-//     // const generateInvoice = customAlphabet('1234567890', 14)
+      await client.query('COMMIT')
 
-//     // const id = `order-${nanoid(24)}`
-//     // const invoice = `INV${generateInvoice()}`
-//     // const createdAt = Date.now()
-//     // const sellingPrice = await this._pool.query(`
-//     //   SELECT selling_price
-//     //   FROM products
-//     //   WHERE id =  ${productId}`)
+      return orderId
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw new InvariantError(`Transaksi gagal: ${error.message}`)
+    } finally {
+      client.release()
+    }
+  }
+}
 
-//     // const totalPrice = itemQuantity * sellingPrice
-
-//     // const orderQuery = {
-//     //   text: `INSERT INTO order_details
-//     //     VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-//     //   values: [
-//     //     id,
-//     //     invoice,
-//     //     productId,
-//     //     itemQuantity,
-//     //     sellingPrice,
-//     //     totalPrice,
-//     //     createdAt,
-//     //     createdAt
-//     //   ]
-//     // }
-
-//     // const order = await this._pool.query(orderQuery)
-//     // const orderId = order.rows[0].id
-
-//     // await this._pool.query(
-//     //   `UPDATE products SET stock = stock - ${itemQuantity}
-//     //   WHERE product_id = ${productId}`
-//     // )
-
-//     // await this._pool.query(
-//     //   `INSERT INTO
-//     //   orders(id, invoice, user_id, stock_quantity, discount, total_price, created_at, updated_at)
-//     //   VALUES(${id}, ${invoice}, ${userId}, ${itemQuantity}, ${totalPrice}, ${createdAt} ${createdAt})`
-//     // )
-
-//     // return orderId
-//   }
-
-//   async checkStock(productId) {
-//     const query = {
-//       text: 'SELECT stock FROM products WHERE id = $1',
-//       values: [productId]
-//     }
-
-//     const result = await this._pool.query(query)
-
-//     if (result.rows.length === 0) {
-//       throw new InvariantError('Transaksi gagal: Stok telah habis')
-//     }
-//   }
-// }
-
-// module.exports = OrdersService
+module.exports = OrdersService

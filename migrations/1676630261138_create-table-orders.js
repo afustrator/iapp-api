@@ -1,5 +1,5 @@
 exports.up = (pgm) => {
-  pgm.createTable('checkouts', {
+  pgm.createTable('orders', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
@@ -12,9 +12,16 @@ exports.up = (pgm) => {
       type: 'VARCHAR(50)',
       notNull: true
     },
-    amount: {
-      type: 'INTEGER',
+    name: {
+      type: 'VARCHAR(100)',
       notNull: true
+    },
+    address: {
+      type: 'TEXT',
+      notNull: true
+    },
+    phone: {
+      type: 'BIGINT'
     },
     created_at: {
       type: 'BIGINT',
@@ -27,12 +34,12 @@ exports.up = (pgm) => {
   })
 
   pgm.addConstraint(
-    'checkouts',
-    'fk_checkouts.user_id_users.id',
+    'orders',
+    'fk_orders.user_id_users.id',
     'FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE'
   )
 }
 
 exports.down = (pgm) => {
-  pgm.dropTable('checkouts')
+  pgm.dropTable('orders')
 }

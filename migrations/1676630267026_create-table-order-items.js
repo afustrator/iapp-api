@@ -1,11 +1,11 @@
 exports.up = (pgm) => {
-  pgm.createTable('orders', {
+  pgm.createTable('order_items', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
       notNull: true
     },
-    checkout_id: {
+    order_id: {
       type: 'VARCHAR(50)',
       notNull: true
     },
@@ -32,18 +32,18 @@ exports.up = (pgm) => {
   })
 
   pgm.addConstraint(
-    'orders',
-    'fk_orders.checkout_id_checkouts.id',
-    'FOREIGN KEY(checkout_id) REFERENCES checkouts(id) ON DELETE CASCADE'
+    'order_items',
+    'fk_order_items.order_id_orders.id',
+    'FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE'
   )
 
   pgm.addConstraint(
-    'orders',
-    'fk_orders.product_id_products.id',
+    'order_items',
+    'fk_order_items.product_id_products.id',
     'FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE'
   )
 }
 
 exports.down = (pgm) => {
-  pgm.dropTable('orders')
+  pgm.dropTable('order_items')
 }

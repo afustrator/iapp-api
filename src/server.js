@@ -28,6 +28,11 @@ const AuthenticationsService = require('./services/postgres/AuthenticationsServi
 const TokenManager = require('./tokenize/TokenManager')
 const AuthenticationsValidator = require('./validator/authentications')
 
+/** Checkouts */
+const orders = require('./api/orders')
+const OrdersService = require('./services/postgres/OrdersService')
+const OrdersValidator = require('./validator/orders')
+
 const server = Hapi.server({
   host: process.env.HOST,
   port: process.env.PORT,
@@ -44,6 +49,7 @@ const init = async () => {
   const productsService = new ProductsService()
   const usersService = new UsersService()
   const authenticationsService = new AuthenticationsService()
+  const ordersService = new OrdersService()
 
   /** Route Prefix */
   const prefix = (server.realm.modifiers.route.prefix = '/api/v1')
@@ -159,6 +165,13 @@ const init = async () => {
         usersService,
         tokenManager: TokenManager,
         validator: AuthenticationsValidator
+      }
+    },
+    {
+      plugin: orders,
+      options: {
+        service: ordersService,
+        validator: OrdersValidator
       }
     }
   ])
