@@ -13,18 +13,18 @@ class ProductsService {
   async addProduct({ name, stock, price, categoryId, expireDate, owner }) {
     const generateProductCode = customAlphabet('1234567890', 14)
 
-    const id = `product-${nanoid(24)}`
+    const productId = `product-${nanoid(24)}`
+    const stockId = `stock-${nanoid(16)}`
     const barcode = `P${generateProductCode()}`
     const createdAt = Date.now()
     const inputDate = Date.now()
 
-    const query = {
-      text: 'INSERT INTO products VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
+    const productQuery = {
+      text: 'INSERT INTO products VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
       values: [
-        id,
+        productId,
         barcode,
         name,
-        stock,
         price,
         categoryId,
         expireDate,
@@ -35,21 +35,29 @@ class ProductsService {
       ]
     }
 
-    const result = await this._pool.query(query)
+    //* Update stock */
+    const stockQuery = {
+      text: 'INSERT INTO stocks(id, product_id, stock, sale, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6)',
+      values: [stockId, productId, stock, 0, createdAt, createdAt]
+    }
+
+    const result = await this._pool.query(productQuery)
+    await this._pool.query(stockQuery)
 
     if (!result.rows[0].id) {
       throw new InvariantError('Gagal menambahkan produk')
     }
 
-    return result.rows[0].id
+    return productId
   }
 
   async getProducts(owner, { name = '' }) {
     const query = {
       text: `
       SELECT
-      id, barcode, name, stock, price, category_id, expire_date, input_date
+      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date
       FROM products
+      LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE owner = $1 AND LOWER(name) LIKE $2`,
       values: [owner, `%${name}%`]
     }
@@ -63,8 +71,10 @@ class ProductsService {
     const query = {
       text: `
       SELECT
-      id, barcode, name, stock, price, category_id, expire_date, input_date
+      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date
       FROM products
+      LEFT JOIN stocks ON stocks.product_id = products.id
+      LEFT JOIN categories ON categories.id = products.category_id
       WHERE category_id = $1`,
       values: [categoryId]
     }
@@ -78,9 +88,10 @@ class ProductsService {
     const query = {
       text: `
       SELECT
-      id, barcode, name, stock, price, category_id, expire_date, input_date, created_at, updated_at
+      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date, products.created_at, products.updated_at
       FROM products
-      WHERE id = $1`,
+      LEFT JOIN stocks ON stocks.product_id = products.id
+      WHERE products.id = $1`,
       values: [productId]
     }
 
@@ -94,12 +105,19 @@ class ProductsService {
   }
 
   async updateProductById(productId, { name, stock, price }) {
-    const query = {
-      text: 'UPDATE products SET name = $1, stock = $2, price = $3 WHERE id = $4 RETURNING id',
-      values: [name, stock, price, productId]
+    const productQuery = {
+      text: 'UPDATE products SET name = $1, price = $2 WHERE id = $3 RETURNING id',
+      values: [name, price, productId]
     }
 
-    const result = await this._pool.query(query)
+    //* Update stock */
+    const stockQuery = {
+      text: `UPDATE stocks SET stock = stock + ${stock} WHERE product_id = $1`,
+      values: [productId]
+    }
+
+    const result = await this._pool.query(productQuery)
+    await this._pool.query(stockQuery)
 
     if (!result.rows.length) {
       throw new NotFoundError('Gagal memperbarui produk. Id tidak ditemukan')
