@@ -1,6 +1,7 @@
 const { Pool } = require('pg')
 const { nanoid, customAlphabet } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
+const NotFoundError = require('../../exceptions/NotFoundError')
 
 class OrdersService {
   constructor() {
@@ -94,6 +95,88 @@ class OrdersService {
       throw new InvariantError(`Transaksi gagal: ${error.message}`)
     } finally {
       client.release()
+    }
+  }
+
+  async getOrders(userId, { page = 1, limit = 2 }) {
+    /** Count data order */
+    const recordQuery = {
+      text: 'SELECT COUNT(orders.id) as total FROM orders WHERE user_id = $1',
+      values: [userId]
+    }
+
+    const numRows = await this._pool.query(recordQuery)
+
+    const { total } = numRows.rows[0]
+
+    const totalPages = Math.ceil(total / limit)
+    const offset = limit * (page - 1)
+
+    const query = {
+      text: `SELECT
+        orders.id, orders.invoice, orders.name, users.fullname as cashier
+        FROM orders
+        LEFT JOIN users ON users.id = orders.user_id
+        WHERE user_id = $1
+        LIMIT $2 OFFSET $3`,
+      values: [userId, limit, offset]
+    }
+
+    const { rows } = await this._pool.query(query)
+
+    return {
+      orders: rows,
+      meta: {
+        page,
+        total,
+        totalPages
+      }
+    }
+  }
+
+  async getOrderById(orderId) {
+    const query = {
+      text: `SELECT
+        orders.id, users.fullname as cashier, 
+        orders.invoice, orders.name, orders.address, orders.phone
+        FROM orders
+        LEFT JOIN users ON users.id = orders.user_id
+        WHERE orders.id = $1`,
+      values: [orderId]
+    }
+
+    const result = await this._pool.query(query)
+
+    if (!result.rows.length) {
+      throw new NotFoundError(
+        'Gagal mendapatkan data order. Id tidak ditemukan'
+      )
+    }
+
+    const itemsQuery = {
+      text: `SELECT
+        products.id, products.barcode, products.name, products.expire_date,
+        order_items.quantity, order_items.price,
+        ROUND(order_items.price * order_items.quantity) as total_price
+        FROM order_items
+        LEFT JOIN products ON products.id = order_items.product_id
+        WHERE order_items.order_id = $1`,
+      values: [orderId]
+    }
+
+    const items = await this._pool.query(itemsQuery)
+
+    return {
+      ...result.rows[0],
+      items: items.rows.map((row) => ({
+        id: row.id,
+        barcode: row.barcode,
+        name: row.name,
+        expireDate: row.expire_date,
+        quantity: row.quantity,
+        price: row.price,
+        totalPrice: row.total_price
+      }))
     }
   }
 }

@@ -24,13 +24,42 @@ class OrdersHandler {
 
     const response = h.response({
       status: 'success',
-      message: 'Transaksi berhasil',
+      message: 'Berhasil melakukan transaksi',
       data: {
         orderId
       }
     })
     response.code(201)
     return response
+  }
+
+  async getOrdersHandler(request) {
+    const { id: userId } = request.auth.credentials
+    const { page } = request.query
+
+    const { orders, meta } = await this._service.getOrders(userId, { page })
+
+    return {
+      status: 'success',
+      data: {
+        orders,
+        meta
+      }
+    }
+  }
+
+  async getOrderByIdHandler(request) {
+    const { orderId } = request.params
+
+    const order = await this._service.getOrderById(orderId)
+
+    return {
+      status: 'success',
+      message: 'Berhasil mendapatkan data order',
+      data: {
+        order
+      }
+    }
   }
 }
 
