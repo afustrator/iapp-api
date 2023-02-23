@@ -1,7 +1,7 @@
 const { Pool } = require('pg')
 const { nanoid, customAlphabet } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
-const { mapProductsDBToModel } = require('../../utils')
+const { mapProductsDBToModel, mapProductDBToModel } = require('../../utils')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const AuthorizationError = require('../../exceptions/AuthorizationError')
 
@@ -55,7 +55,9 @@ class ProductsService {
     const query = {
       text: `
       SELECT
-      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date
+      products.id, products.barcode, products.name, stocks.stock, products.price,
+      products.category_id, products.expire_date, products.input_date,
+      products.created_at, products.updated_at
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE owner = $1 AND LOWER(name) LIKE $2`,
@@ -64,7 +66,7 @@ class ProductsService {
 
     const result = await this._pool.query(query)
 
-    return result.rows.map(mapProductsDBToModel)
+    return result.rows.map(mapProductDBToModel)
   }
 
   async getProductsByCategoryId({ categoryId }) {
@@ -105,9 +107,11 @@ class ProductsService {
   }
 
   async updateProductById(productId, { name, stock, price }) {
+    const updatedAt = Date.now()
+
     const productQuery = {
-      text: 'UPDATE products SET name = $1, price = $2 WHERE id = $3 RETURNING id',
-      values: [name, price, productId]
+      text: 'UPDATE products SET name = $1, price = $2, updated_at = $3 WHERE id = $4 RETURNING id',
+      values: [name, price, updatedAt, productId]
     }
 
     //* Update stock */
