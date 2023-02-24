@@ -1,7 +1,7 @@
 const { Pool } = require('pg')
 const { nanoid, customAlphabet } = require('nanoid')
-const InvariantError = require('../../exceptions/InvariantError')
 const { mapProductsDBToModel, mapProductDBToModel } = require('../../utils')
+const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const AuthorizationError = require('../../exceptions/AuthorizationError')
 
@@ -18,9 +18,13 @@ class ProductsService {
     const barcode = `P${generateProductCode()}`
     const createdAt = Date.now()
     const inputDate = Date.now()
+    const sale = 0
 
     const productQuery = {
-      text: 'INSERT INTO products VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
+      text: `INSERT 
+        INTO products
+        VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id`,
       values: [
         productId,
         barcode,
@@ -37,43 +41,70 @@ class ProductsService {
 
     //* Update stock */
     const stockQuery = {
-      text: 'INSERT INTO stocks(id, product_id, stock, sale, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6)',
-      values: [stockId, productId, stock, 0, createdAt, createdAt]
+      text: `INSERT
+        INTO stocks
+        VALUES($1, $2, $3, $4, $5, $6)`,
+      values: [stockId, productId, stock, sale, createdAt, createdAt]
     }
 
     const result = await this._pool.query(productQuery)
     await this._pool.query(stockQuery)
 
     if (!result.rows[0].id) {
-      throw new InvariantError('Gagal menambahkan produk')
+      throw new InvariantError('Produk gagal ditambahkan')
     }
 
     return productId
   }
 
-  async getProducts(owner, { name = '' }) {
+  async getProducts(owner, { name = '', page = 1, limit = 20 }) {
+    const rowsQuery = {
+      text: `SELECT
+        COUNT(id) as total
+        FROM products
+        WHERE owner = $1`,
+      values: [owner]
+    }
+
+    const totalRows = await this._pool.query(rowsQuery)
+
+    const { total } = totalRows.rows[0]
+    const totalPages = Math.ceil(total / limit)
+    const offset = limit * (page - 1)
+
     const query = {
       text: `
       SELECT
-      products.id, products.barcode, products.name, stocks.stock, products.price,
-      products.category_id, products.expire_date, products.input_date,
-      products.created_at, products.updated_at
+      products.id, products.barcode, products.name,
+      stocks.stock, products.price, products.category_id,
+      TO_CHAR(TO_TIMESTAMP(products.expire_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as expire_date,
+      TO_CHAR(TO_TIMESTAMP(products.input_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as input_date
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
-      WHERE owner = $1 AND LOWER(name) LIKE $2`,
-      values: [owner, `%${name}%`]
+      WHERE owner = $1 AND LOWER(name) LIKE $2
+      LIMIT $3 OFFSET $4`,
+      values: [owner, `%${name}%`, limit, offset]
     }
 
-    const result = await this._pool.query(query)
+    const { rows } = await this._pool.query(query)
 
-    return result.rows.map(mapProductDBToModel)
+    return {
+      products: rows.map(mapProductDBToModel),
+      meta: {
+        page,
+        total,
+        totalPages
+      }
+    }
   }
 
   async getProductsByCategoryId({ categoryId }) {
     const query = {
-      text: `
-      SELECT
-      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date
+      text: `SELECT
+      products.id, products.barcode, products.name,
+      stocks.stock, products.price, products.category_id,
+      TO_CHAR(TO_TIMESTAMP(products.expire_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as expire_date,
+      TO_CHAR(TO_TIMESTAMP(products.input_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as input_date
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       LEFT JOIN categories ON categories.id = products.category_id
@@ -88,9 +119,13 @@ class ProductsService {
 
   async getProductById(productId) {
     const query = {
-      text: `
-      SELECT
-      products.id, products.barcode, products.name, stocks.stock, products.price, products.category_id, products.expire_date, products.input_date, products.created_at, products.updated_at
+      text: `SELECT
+      products.id, products.barcode, products.name,
+      stocks.stock, products.price, products.category_id,
+      TO_CHAR(TO_TIMESTAMP(products.expire_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as expire_date,
+      TO_CHAR(TO_TIMESTAMP(products.input_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as input_date,
+      TO_CHAR(TO_TIMESTAMP(products.created_at / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as created_at,
+      TO_CHAR(TO_TIMESTAMP(products.updated_at / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as updated_at
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE products.id = $1`,
@@ -110,14 +145,19 @@ class ProductsService {
     const updatedAt = Date.now()
 
     const productQuery = {
-      text: 'UPDATE products SET name = $1, price = $2, updated_at = $3 WHERE id = $4 RETURNING id',
+      text: `UPDATE products
+        SET name = $1, price = $2, updated_at = $3
+        WHERE id = $4
+        RETURNING id`,
       values: [name, price, updatedAt, productId]
     }
 
     //* Update stock */
     const stockQuery = {
-      text: `UPDATE stocks SET stock = stock + ${stock} WHERE product_id = $1`,
-      values: [productId]
+      text: `UPDATE stocks
+        SET stock = stock + $1
+        WHERE product_id = $2`,
+      values: [stock, productId]
     }
 
     const result = await this._pool.query(productQuery)
@@ -130,7 +170,10 @@ class ProductsService {
 
   async deleteProductById(productId) {
     const query = {
-      text: 'DELETE FROM products WHERE id = $1 RETURNING id',
+      text: `DELETE
+        FROM products 
+        WHERE id = $1
+        RETURNING id`,
       values: [productId]
     }
 

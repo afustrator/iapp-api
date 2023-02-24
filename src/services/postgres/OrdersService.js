@@ -2,6 +2,7 @@ const { Pool } = require('pg')
 const { nanoid, customAlphabet } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
+const { mapOrderItemsDBToModel, mapOrderDBToModel } = require('../../utils')
 
 class OrdersService {
   constructor() {
@@ -16,13 +17,16 @@ class OrdersService {
       SELECT product_id, stock, sale
       FROM stocks 
       WHERE product_id
-      IN (${items.map((i) => `'${i.productId}'`).join()})`)
+      IN (${items.map((i) => `'${i.productId}'`).join()})
+    `)
     const stocks = stocksQuery.rows
+
     const itemsWithStock = items.map((item) => ({
       ...item,
       stock: stocks.find((sp) => sp.product_id === item.productId).stock,
       sale: stocks.find((sp) => sp.product_id === item.productId).sale
     }))
+
     const checkStock = itemsWithStock
       .map((iws) => +iws.stock - +iws.quantity)
       .every((i) => i >= 0)
@@ -41,7 +45,10 @@ class OrdersService {
       const createdAt = Date.now()
 
       const orderQuery = {
-        text: 'INSERT INTO orders(id, user_id, invoice, name, address, phone, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+        text: `INSERT
+          INTO orders
+          VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING id`,
         values: [
           id,
           userId,
@@ -69,9 +76,8 @@ class OrdersService {
         `)
 
         const itemQuery = {
-          text: `
-            INSERT INTO
-            order_items(id, order_id, product_id, quantity, price, created_at, updated_at)
+          text: `INSERT
+            INTO order_items
             VALUES($1, $2, $3, $4, $5, $6, $7)`,
           values: [
             id,
@@ -98,10 +104,13 @@ class OrdersService {
     }
   }
 
-  async getOrders(userId, { page = 1, limit = 2 }) {
+  async getOrders(userId, { page = 1, limit = 20 }) {
     /** Count data order */
     const recordQuery = {
-      text: 'SELECT COUNT(orders.id) as total FROM orders WHERE user_id = $1',
+      text: `SELECT
+        COUNT(orders.id) as total
+        FROM orders
+        WHERE user_id = $1`,
       values: [userId]
     }
 
@@ -114,7 +123,8 @@ class OrdersService {
 
     const query = {
       text: `SELECT
-        orders.id, orders.invoice, orders.name, users.fullname as cashier
+        orders.id, orders.invoice,
+        orders.name, users.fullname as cashier
         FROM orders
         LEFT JOIN users ON users.id = orders.user_id
         WHERE user_id = $1
@@ -137,10 +147,11 @@ class OrdersService {
   async getOrderById(orderId) {
     const query = {
       text: `SELECT
-        orders.id, users.fullname as cashier, 
-        orders.invoice, orders.name, orders.address, orders.phone
+        orders.id, users.fullname as cashier,
+        orders.invoice, orders.name,
+        orders.address, orders.phone
         FROM orders
-        LEFT JOIN users ON users.id = orders.user_id
+        RIGHT JOIN users ON users.id = orders.user_id
         WHERE orders.id = $1`,
       values: [orderId]
     }
@@ -155,28 +166,20 @@ class OrdersService {
 
     const itemsQuery = {
       text: `SELECT
-        products.id, products.barcode, products.name, products.expire_date,
+        products.id, products.barcode, products.name,
+        TO_CHAR(TO_TIMESTAMP(products.expire_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as expire_date,
         order_items.quantity, order_items.price,
-        ROUND(order_items.price * order_items.quantity) as total_price
+        ROUND(order_items.price * order_items.quantity) as sub_total
         FROM order_items
         LEFT JOIN products ON products.id = order_items.product_id
         WHERE order_items.order_id = $1`,
       values: [orderId]
     }
-
     const items = await this._pool.query(itemsQuery)
 
     return {
-      ...result.rows[0],
-      items: items.rows.map((row) => ({
-        id: row.id,
-        barcode: row.barcode,
-        name: row.name,
-        expireDate: row.expire_date,
-        quantity: row.quantity,
-        price: row.price,
-        totalPrice: row.total_price
-      }))
+      ...result.rows.map(mapOrderDBToModel)[0],
+      items: items.rows.map(mapOrderItemsDBToModel)
     }
   }
 }

@@ -1,7 +1,7 @@
 const routes = (handler) => [
   {
     method: 'POST',
-    path: '/product',
+    path: '/products',
     handler: handler.postProductHandler,
     options: {
       auth: 'iapp_jwt'
@@ -9,7 +9,7 @@ const routes = (handler) => [
   },
   {
     method: 'GET',
-    path: '/product',
+    path: '/products',
     handler: handler.getProductsHandler,
     options: {
       auth: 'iapp_jwt'
@@ -17,7 +17,7 @@ const routes = (handler) => [
   },
   {
     method: 'GET',
-    path: '/product/{productId}',
+    path: '/products/{productId}',
     handler: handler.getProductByIdHandler,
     options: {
       auth: 'iapp_jwt'
@@ -25,7 +25,7 @@ const routes = (handler) => [
   },
   {
     method: 'PUT',
-    path: '/product/{productId}',
+    path: '/products/{productId}',
     handler: handler.putProductByIdHandler,
     options: {
       auth: 'iapp_jwt'
@@ -33,7 +33,7 @@ const routes = (handler) => [
   },
   {
     method: 'DELETE',
-    path: '/product/{productId}',
+    path: '/products/{productId}',
     handler: handler.deleteProductByIdHandler,
     options: {
       auth: 'iapp_jwt'
