@@ -15,6 +15,10 @@ const after = lab.after
 // require hapi server
 const server = require('../../src/server')
 
+// describe('authentication test', () => {
+//   it('')
+// })
+
 /** Test */
 describe('functional test - category', () => {
   // it('')
