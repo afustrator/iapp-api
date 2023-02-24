@@ -47,8 +47,37 @@ const mapProductDBToModel = ({
   inputDate: input_date
 })
 
+const mapOrderDBToModel = ({ id, cashier, invoice, name, address, phone }) => ({
+  id,
+  cashier,
+  invoice,
+  customerName: name,
+  customerAddress: address,
+  customerPhone: phone
+})
+
+const mapOrderItemsDBToModel = ({
+  id,
+  barcode,
+  name,
+  expire_date,
+  quantity,
+  price,
+  sub_total
+}) => ({
+  id,
+  barcode,
+  produkName: name,
+  expireDate: expire_date,
+  quantity,
+  price,
+  subTotal: sub_total
+})
+
 module.exports = {
   mapCategoryDBToModel,
   mapProductsDBToModel,
-  mapProductDBToModel
+  mapProductDBToModel,
+  mapOrderDBToModel,
+  mapOrderItemsDBToModel
 }
