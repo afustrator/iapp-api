@@ -20,6 +20,7 @@
 ![](https://img.shields.io/badge/npm-8.19.3-CB3837?style=for-the-badge&logo=npm&logoColor=white)
 ![](https://img.shields.io/badge/PostgreSQL-14.6-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![](https://img.shields.io/badge/JWT-3.1.0-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
+![](https://img.shields.io/badge/Hapi.js-21.2.0-f59042?style=for-the-badge)
 
 ## Documentation
 
