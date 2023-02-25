@@ -60,9 +60,8 @@ const init = async () => {
       path: '/',
       handler: () => ({
         data: {
-          status: 'Ok',
-          message: 'Iapp API',
-          version: '1.0.0'
+          status: '200 OK',
+          message: 'Iapp API v1'
         }
       })
     },

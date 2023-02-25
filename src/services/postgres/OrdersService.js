@@ -2,7 +2,11 @@ const { Pool } = require('pg')
 const { nanoid, customAlphabet } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
-const { mapOrderItemsDBToModel, mapOrderDBToModel } = require('../../utils')
+const {
+  mapOrderItemsDBToModel,
+  mapOrderDBToModel,
+  mapOrdersDBToModel
+} = require('../../utils')
 
 class OrdersService {
   constructor() {
@@ -34,40 +38,26 @@ class OrdersService {
       throw new InvariantError('Transaksi gagal: Stok tidak cukup')
     }
 
-    const client = await this._pool.connect()
-
     //* Order */
-    try {
-      await client.query('BEGIN')
+    const id = `order-${nanoid(16)}`
+    const invoice = `INV${generateInvoice()}`
+    const createdAt = Date.now()
 
-      const id = `order-${nanoid(16)}`
-      const invoice = `INV${generateInvoice()}`
-      const createdAt = Date.now()
-
-      const orderQuery = {
-        text: `INSERT
+    const orderQuery = {
+      text: `INSERT
           INTO orders
           VALUES($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING id`,
-        values: [
-          id,
-          userId,
-          invoice,
-          name,
-          address,
-          phone,
-          createdAt,
-          createdAt
-        ]
-      }
+      values: [id, userId, invoice, name, address, phone, createdAt, createdAt]
+    }
 
-      const order = await client.query(orderQuery)
-      const orderId = order.rows[0].id
+    const order = await this._pool.query(orderQuery)
+    const orderId = order.rows[0].id
 
-      await itemsWithStock.map(async (item) => {
-        const id = `orderItem-${nanoid(14)}`
+    await itemsWithStock.map(async (item) => {
+      const id = `orderItem-${nanoid(14)}`
 
-        await client.query(`
+      await this._pool.query(`
           UPDATE stocks
           SET
           stock = '${+item.stock - +item.quantity}', 
@@ -75,33 +65,25 @@ class OrdersService {
           WHERE product_id = '${item.productId}'
         `)
 
-        const itemQuery = {
-          text: `INSERT
+      const itemQuery = {
+        text: `INSERT
             INTO order_items
             VALUES($1, $2, $3, $4, $5, $6, $7)`,
-          values: [
-            id,
-            orderId,
-            item.productId,
-            item.quantity,
-            item.price,
-            createdAt,
-            createdAt
-          ]
-        }
+        values: [
+          id,
+          orderId,
+          item.productId,
+          item.quantity,
+          item.price,
+          createdAt,
+          createdAt
+        ]
+      }
 
-        await client.query(itemQuery)
-      })
+      await this._pool.query(itemQuery)
+    })
 
-      await client.query('COMMIT')
-
-      return orderId
-    } catch (error) {
-      await client.query('ROLLBACK')
-      throw new InvariantError(`Transaksi gagal: ${error.message}`)
-    } finally {
-      client.release()
-    }
+    return orderId
   }
 
   async getOrders(userId, { page = 1, limit = 20 }) {
@@ -124,7 +106,8 @@ class OrdersService {
     const query = {
       text: `SELECT
         orders.id, orders.invoice,
-        orders.name, users.fullname as cashier
+        orders.name, users.fullname as cashier,
+        TO_CHAR(TO_TIMESTAMP(orders.created_at / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as order_date
         FROM orders
         LEFT JOIN users ON users.id = orders.user_id
         WHERE user_id = $1
@@ -135,7 +118,7 @@ class OrdersService {
     const { rows } = await this._pool.query(query)
 
     return {
-      orders: rows,
+      orders: rows.map(mapOrdersDBToModel),
       meta: {
         page,
         total,

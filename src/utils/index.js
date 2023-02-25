@@ -47,6 +47,14 @@ const mapProductDBToModel = ({
   inputDate: input_date
 })
 
+const mapOrdersDBToModel = ({ id, invoice, name, cashier, order_date }) => ({
+  id,
+  invoice,
+  customerName: name,
+  cashier,
+  orderDate: order_date
+})
+
 const mapOrderDBToModel = ({ id, cashier, invoice, name, address, phone }) => ({
   id,
   cashier,
@@ -78,6 +86,7 @@ module.exports = {
   mapCategoryDBToModel,
   mapProductsDBToModel,
   mapProductDBToModel,
+  mapOrdersDBToModel,
   mapOrderDBToModel,
   mapOrderItemsDBToModel
 }
