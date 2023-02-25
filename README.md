@@ -18,7 +18,7 @@
 
 ![](https://img.shields.io/badge/Node.js-19.2.0-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![](https://img.shields.io/badge/npm-8.19.3-CB3837?style=for-the-badge&logo=npm&logoColor=white)
-![](https://img.shields.io/badge/PostgreSQL-14-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![](https://img.shields.io/badge/PostgreSQL-14.6-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![](https://img.shields.io/badge/JWT-3.1.0-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
 
 ## Documentation
@@ -31,11 +31,10 @@ Clone this repository in your local directory
 git clone https://github.com/afustrator/iapp-api.git
 ```
 
-Next, go to the directory `pos-hapi-postgre` and install all dependencies using
-`npm`.
+Next, go to the directory `iapp-api` and install all dependencies using `npm`.
 
 ```sh
-cd pos-hapi-postgre
+cd iapp-api
 npm install
 ```
 
