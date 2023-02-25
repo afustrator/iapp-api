@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://drive.google.com/uc?export=view&id=19suoXiPVp0ttdJkcJqrVCmrWRHfal9dS" alt="Iapp-logo" width="240" />
+  <img src="https://drive.google.com/uc?export=view&id=1AqgKUhcUhh_AdOs1nfkgGC0N9kejly0k" alt="Iapp-logo" width="1000" />
 
   <p align="center">The open source RESTful API Point Of Sales</p>
 </p>
