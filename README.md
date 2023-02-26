@@ -13,7 +13,7 @@
 - Category Management
   - Create Category
   - Get Categories
-  - Get Category by ID with Product List
+  - Get Category by ID which contains Products
   - Update Category
   - Delete Category
 - Product Management
