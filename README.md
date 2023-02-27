@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://drive.google.com/uc?export=view&id=1AqgKUhcUhh_AdOs1nfkgGC0N9kejly0k" alt="Iapp-logo" height="280" />
+  <img src="https://drive.google.com/uc?export=view&id=19suoXiPVp0ttdJkcJqrVCmrWRHfal9dS" alt="Iapp-logo" width="700" />
 
   <p align="center">The open source RESTful API Point Of Sales</p>
 </p>
@@ -52,13 +52,29 @@ cd iapp-api
 npm install
 ```
 
-Set up `.env` file by copying `.env.example` file.
+Set up the `.env` file by following the code below.
 
 ```sh
-cp .env.example .env
+NODE_ENV=development
+
+# Server Configuration
+HOST=localhost
+PORT=3000
+
+# Node Postgre Configuration
+PGUSER= # Add local postgre username
+PGPASSWORD= # Add local postgre password
+PGDATABASE= # Add local postgre database
+PGHOST= # Add local postgre host
+PGPORT= # Add local postgre port
+
+# JWT Token
+ACCESS_TOKEN_KEY= # Add with a random string or whatever it is
+REFRESH_TOKEN_KEY= # Add with a random string or whatever it is
+ACCESS_TOKEN_AGE= # Add with number
 ```
 
-After you setup the database, run the migration table.
+After you setup the database and environment variable, run the migration table.
 
 ```sh
 npm run migrate up
