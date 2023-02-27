@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "type": "commonjs",
-  "main": "server.js",
+  "main": "./src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node ./src/server.js",
     "dev": "nodemon ./src/server.js",
     "migrate": "node-pg-migrate"
   },
