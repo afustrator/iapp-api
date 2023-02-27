@@ -24,7 +24,7 @@ class ProductsHandler {
 
     const response = h.response({
       status: 'success',
-      message: 'Berhasil menambahkan produk',
+      message: 'Produk berhasil ditambahkan',
       data: {
         productId
       }
@@ -85,7 +85,7 @@ class ProductsHandler {
 
     return {
       status: 'success',
-      message: 'Berhasil memperbarui produk'
+      message: 'Produk berhasil diperbarui'
     }
   }
 
@@ -97,7 +97,7 @@ class ProductsHandler {
     await await this._productsService.deleteProductById(productId)
     return {
       status: 'success',
-      message: 'Berhasil menghapus produk'
+      message: 'Produk berhasil dihapus'
     }
   }
 }

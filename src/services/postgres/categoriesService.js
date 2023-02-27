@@ -3,7 +3,7 @@ const { nanoid } = require('nanoid')
 const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const AuthorizationError = require('../../exceptions/AuthorizationError')
-const { mapCategoryDBToModel } = require('../../utils')
+const { mapCategoriesDBToModel, mapCategoryDBToModel } = require('../../utils')
 
 class CategoriesService {
   constructor() {
@@ -41,7 +41,7 @@ class CategoriesService {
 
     const result = await this._pool.query(query)
 
-    return result.rows.map(mapCategoryDBToModel)
+    return result.rows.map(mapCategoriesDBToModel)
   }
 
   async getCategoryById(categoryId) {

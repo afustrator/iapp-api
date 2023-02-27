@@ -1,4 +1,9 @@
 /* eslint-disable camelcase */
+const mapCategoriesDBToModel = ({ id, name }) => ({
+  id,
+  name
+})
+
 const mapCategoryDBToModel = ({ id, name, owner, created_at, updated_at }) => ({
   id,
   name,
@@ -83,6 +88,7 @@ const mapOrderItemsDBToModel = ({
 })
 
 module.exports = {
+  mapCategoriesDBToModel,
   mapCategoryDBToModel,
   mapProductsDBToModel,
   mapProductDBToModel,

@@ -24,7 +24,7 @@ class OrdersHandler {
 
     const response = h.response({
       status: 'success',
-      message: 'Berhasil melakukan transaksi',
+      message: 'Transaksi berhasil ditambahkan',
       data: {
         orderId
       }
@@ -55,7 +55,6 @@ class OrdersHandler {
 
     return {
       status: 'success',
-      message: 'Berhasil mendapatkan data order',
       data: {
         order
       }

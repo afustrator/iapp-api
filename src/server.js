@@ -34,8 +34,8 @@ const OrdersService = require('./services/postgres/OrdersService')
 const OrdersValidator = require('./validator/orders')
 
 const server = Hapi.server({
-  host: process.env.HOST,
-  port: process.env.PORT,
+  host: process.env.HOST || '0.0.0.0',
+  port: process.env.PORT || 3000,
   routes: {
     cors: {
       origin: ['*']

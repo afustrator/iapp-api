@@ -21,7 +21,7 @@ class CategoriesHandler {
 
     const response = h.response({
       status: 'success',
-      message: 'Berhasil menambahkan kategori',
+      message: 'Kategori berhasil ditambahkan',
       data: {
         categoryId
       }
