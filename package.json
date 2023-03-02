@@ -22,7 +22,9 @@
     "laabr": "^6.1.3",
     "nanoid": "^3.3.4",
     "node-pg-migrate": "^6.2.2",
-    "pg": "^8.9.0"
+    "pg": "^8.9.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.29.0"
   },
   "devDependencies": {
     "eslint": "^8.32.0",
