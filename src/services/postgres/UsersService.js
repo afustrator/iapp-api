@@ -5,95 +5,97 @@ const InvariantError = require('../../exceptions/InvariantError')
 const NotFoundError = require('../../exceptions/NotFoundError')
 const AuthenticationError = require('../../exceptions/AuthenticationError')
 
+// Todo: Change All Date Time using UTC
+
 class UsersService {
-  constructor() {
-    this._pool = new Pool()
-  }
+	constructor() {
+		this._pool = new Pool()
+	}
 
-  async addUser({ username, password, fullname }) {
-    await this.verifyUsername(username)
+	async addUser({ username, password, fullname }) {
+		await this.verifyUsername(username)
 
-    const id = `user-${nanoid(24)}`
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const createdAt = Date.now()
+		const id = `user-${nanoid(24)}`
+		const hashedPassword = await bcrypt.hash(password, 10)
+		const createdAt = new Date().toUTCString()
 
-    const query = {
-      text: `INSERT
+		const query = {
+			text: `INSERT
         INTO users
         VALUES($1, $2, $3, $4, $5, $6)
         RETURNING id`,
-      values: [id, username, hashedPassword, fullname, createdAt, createdAt]
-    }
+			values: [id, username, hashedPassword, fullname, createdAt, createdAt]
+		}
 
-    const result = await this._pool.query(query)
+		const result = await this._pool.query(query)
 
-    if (!result.rows.length) {
-      throw new InvariantError('User gagal ditambahkan')
-    }
+		if (!result.rows.length) {
+			throw new InvariantError('User gagal ditambahkan')
+		}
 
-    return result.rows[0].id
-  }
+		return result.rows[0].id
+	}
 
-  async getUserById(userId) {
-    const query = {
-      text: `SELECT 
+	async getUserById(userId) {
+		const query = {
+			text: `SELECT 
         id, username, fullname
         FROM users
         WHERE id = $1`,
-      values: [userId]
-    }
+			values: [userId]
+		}
 
-    const result = await this._pool.query(query)
+		const result = await this._pool.query(query)
 
-    if (!result.rows.length) {
-      throw new NotFoundError('Gagal mendapatkan data User. Id tidak ditemukan')
-    }
+		if (!result.rows.length) {
+			throw new NotFoundError('Gagal mendapatkan data User. Id tidak ditemukan')
+		}
 
-    return result.rows[0]
-  }
+		return result.rows[0]
+	}
 
-  async verifyUsername(username) {
-    const query = {
-      text: `SELECT username
+	async verifyUsername(username) {
+		const query = {
+			text: `SELECT username
         FROM users
         WHERE username = $1`,
-      values: [username]
-    }
+			values: [username]
+		}
 
-    const result = await this._pool.query(query)
+		const result = await this._pool.query(query)
 
-    if (result.rows.length > 0) {
-      throw new InvariantError(
-        'Gagal menambahkan user. Username sudah digunakan.'
-      )
-    }
-  }
+		if (result.rows.length > 0) {
+			throw new InvariantError(
+				'Gagal menambahkan user. Username sudah digunakan.'
+			)
+		}
+	}
 
-  async verifyUserCredential(username, password) {
-    const query = {
-      text: `SELECT
+	async verifyUserCredential(username, password) {
+		const query = {
+			text: `SELECT
         id, password
         FROM users
         WHERE username = $1`,
-      values: [username]
-    }
+			values: [username]
+		}
 
-    const result = await this._pool.query(query)
+		const result = await this._pool.query(query)
 
-    if (!result.rows.length) {
-      throw new AuthenticationError('Kredensial yang Anda berikan salah')
-    }
+		if (!result.rows.length) {
+			throw new AuthenticationError('Kredensial yang Anda berikan salah')
+		}
 
-    const { id, password: hashedPassword } = result.rows[0]
+		const { id, password: hashedPassword } = result.rows[0]
 
-    const match = await bcrypt.compare(password, hashedPassword)
+		const match = await bcrypt.compare(password, hashedPassword)
 
-    if (!match) {
-      throw new AuthenticationError('Kredensial yang Anda berikan salah')
-    }
+		if (!match) {
+			throw new AuthenticationError('Kredensial yang Anda berikan salah')
+		}
 
-    return id
-  }
+		return id
+	}
 }
 
 module.exports = UsersService
