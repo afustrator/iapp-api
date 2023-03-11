@@ -107,7 +107,7 @@ class OrdersService {
 			text: `SELECT
         orders.id, orders.invoice,
         orders.name, users.fullname as cashier,
-        TO_CHAR(TO_TIMESTAMP(orders.created_at / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as order_date
+        TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as order_date,
         FROM orders
         LEFT JOIN users ON users.id = orders.user_id
         WHERE user_id = $1
@@ -150,7 +150,7 @@ class OrdersService {
 		const itemsQuery = {
 			text: `SELECT
         products.id, products.barcode, products.name,
-        TO_CHAR(TO_TIMESTAMP(products.expire_date / 1000.0) AT TIME ZONE 'ASIA/JAKARTA', 'DD-MM-YYYY HH24:MI:SS') as expire_date,
+        TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
         order_items.quantity, order_items.price,
         ROUND(order_items.price * order_items.quantity) as sub_total
         FROM order_items

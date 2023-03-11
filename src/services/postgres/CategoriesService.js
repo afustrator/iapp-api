@@ -46,7 +46,9 @@ class CategoriesService {
 
 	async getCategoryById(categoryId) {
 		const query = {
-			text: `SELECT id, name, owner, created_at, updated_at
+			text: `SELECT id, name, owner, 
+				TO_CHAR(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as created_at,
+				TO_CHAR(updated_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as updated_at
         FROM categories
         WHERE id = $1`,
 			values: [categoryId]
