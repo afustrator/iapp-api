@@ -59,7 +59,7 @@ NODE_ENV=development
 
 # Server Configuration
 HOST=localhost
-PORT=3000
+PORT=5000
 
 # Node Postgre Configuration
 PGUSER= # Add local postgre username
