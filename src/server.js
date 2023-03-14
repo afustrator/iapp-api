@@ -38,9 +38,9 @@ const server = Hapi.server({
   port: process.env.PORT || 3000,
   routes: {
     cors: {
-      origin: ['*']
-    }
-  }
+      origin: ['*'],
+    },
+  },
 })
 
 const init = async () => {
@@ -61,9 +61,9 @@ const init = async () => {
       handler: () => ({
         data: {
           status: '200 OK',
-          message: 'Iapp API v1'
-        }
-      })
+          message: 'Iapp API v1',
+        },
+      }),
     },
     {
       method: '*',
@@ -71,12 +71,12 @@ const init = async () => {
       handler: (request, h) => {
         const response = h.response({
           status: '404',
-          message: 'Not Found'
+          message: 'Not Found',
         })
         response.code(404)
         return response
-      }
-    }
+      },
+    },
   ])
 
   /** Handler Error */
@@ -88,7 +88,7 @@ const init = async () => {
       if (response instanceof ClientError) {
         const newResponse = h.response({
           status: 'fail',
-          message: response.message
+          message: response.message,
         })
         newResponse.code(response.statusCode)
         return newResponse
@@ -100,7 +100,7 @@ const init = async () => {
       // penanganan server error sesuai kebutuhan
       const newResponse = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.'
+        message: 'Maaf, terjadi kegagalan pada server kami.',
       })
       newResponse.code(500)
       return newResponse
@@ -112,8 +112,8 @@ const init = async () => {
   /** Register Plugin Eksternal */
   await server.register([
     {
-      plugin: Jwt
-    }
+      plugin: Jwt,
+    },
   ])
 
   // mendefinisikan strategy autentikasi jwt
@@ -123,14 +123,14 @@ const init = async () => {
       aud: false,
       iss: false,
       sub: false,
-      maxAgeSec: process.env.ACCESS_TOKEN_AGE
+      maxAgeSec: process.env.ACCESS_TOKEN_AGE,
     },
     validate: (artifacts) => ({
       isValid: true,
       credentials: {
-        id: artifacts.decoded.payload.id
-      }
-    })
+        id: artifacts.decoded.payload.id,
+      },
+    }),
   })
 
   /** Register API Plugins */
@@ -140,22 +140,22 @@ const init = async () => {
       options: {
         categoriesService,
         productsService,
-        validator: CategoriesValidator
-      }
+        validator: CategoriesValidator,
+      },
     },
     {
       plugin: products,
       options: {
         productsService,
-        validator: ProductsValidator
-      }
+        validator: ProductsValidator,
+      },
     },
     {
       plugin: users,
       options: {
         service: usersService,
-        validator: UsersValidator
-      }
+        validator: UsersValidator,
+      },
     },
     {
       plugin: authentications,
@@ -163,16 +163,16 @@ const init = async () => {
         authenticationsService,
         usersService,
         tokenManager: TokenManager,
-        validator: AuthenticationsValidator
-      }
+        validator: AuthenticationsValidator,
+      },
     },
     {
       plugin: orders,
       options: {
         service: ordersService,
-        validator: OrdersValidator
-      }
-    }
+        validator: OrdersValidator,
+      },
+    },
   ])
 
   /** Logging using Laabr */
@@ -182,9 +182,9 @@ const init = async () => {
       colored: true,
       formats: {
         onPostStart: `${new Date().toLocaleString()} :level :message at :host[uri]${prefix}`,
-        response: ':time :method :url :status :payload (:responseTime ms)'
-      }
-    }
+        response: ':time :method :url :status :payload (:responseTime ms)',
+      },
+    },
   })
 
   /** Running the server */
