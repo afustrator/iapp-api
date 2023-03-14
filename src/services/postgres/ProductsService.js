@@ -35,8 +35,8 @@ class ProductsService {
 				inputDate,
 				owner,
 				createdAt,
-				createdAt
-			]
+				createdAt,
+			],
 		}
 
 		//* Update stock */
@@ -44,7 +44,7 @@ class ProductsService {
 			text: `INSERT
         INTO stocks
         VALUES($1, $2, $3, $4, $5, $6)`,
-			values: [stockId, productId, stock, sale, createdAt, createdAt]
+			values: [stockId, productId, stock, sale, createdAt, createdAt],
 		}
 
 		const result = await this._pool.query(productQuery)
@@ -63,7 +63,7 @@ class ProductsService {
         COUNT(id) as total
         FROM products
         WHERE owner = $1`,
-			values: [owner]
+			values: [owner],
 		}
 
 		const totalRows = await this._pool.query(rowsQuery)
@@ -78,12 +78,12 @@ class ProductsService {
       products.id, products.barcode, products.name,
       stocks.stock, products.price, products.category_id,
       TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
-      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY--MM-DD HH24:MI:SS') as input_date
+      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as input_date
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE owner = $1 AND LOWER(name) LIKE $2
       LIMIT $3 OFFSET $4`,
-			values: [owner, `%${name}%`, limit, offset]
+			values: [owner, `%${name}%`, limit, offset],
 		}
 
 		const { rows } = await this._pool.query(query)
@@ -93,8 +93,8 @@ class ProductsService {
 			meta: {
 				page,
 				total,
-				totalPages
-			}
+				totalPages,
+			},
 		}
 	}
 
@@ -104,12 +104,12 @@ class ProductsService {
       products.id, products.barcode, products.name,
       stocks.stock, products.price, products.category_id,
       TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
-      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY--MM-DD HH24:MI:SS') as input_date
+      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as input_date
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       LEFT JOIN categories ON categories.id = products.category_id
       WHERE category_id = $1`,
-			values: [categoryId]
+			values: [categoryId],
 		}
 
 		const result = await this._pool.query(query)
@@ -123,13 +123,13 @@ class ProductsService {
       products.id, products.barcode, products.name,
       stocks.stock, products.price, products.category_id,
       TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
-      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY--MM-DD HH24:MI:SS') as input_date,
+      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as input_date,
 			TO_CHAR(products.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as created_at,
-      TO_CHAR(products.updated_at AT TIME ZONE 'Asia/Jakarta', 'YYYY--MM-DD HH24:MI:SS') as updated_at
+      TO_CHAR(products.updated_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as updated_at
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE products.id = $1`,
-			values: [productId]
+			values: [productId],
 		}
 
 		const result = await this._pool.query(query)
@@ -149,7 +149,7 @@ class ProductsService {
         SET name = $1, price = $2, updated_at = $3
         WHERE id = $4
         RETURNING id`,
-			values: [name, price, updatedAt, productId]
+			values: [name, price, updatedAt, productId],
 		}
 
 		//* Update stock */
@@ -157,7 +157,7 @@ class ProductsService {
 			text: `UPDATE stocks
         SET stock = stock + $1
         WHERE product_id = $2`,
-			values: [stock, productId]
+			values: [stock, productId],
 		}
 
 		const result = await this._pool.query(productQuery)
@@ -174,7 +174,7 @@ class ProductsService {
         FROM products 
         WHERE id = $1
         RETURNING id`,
-			values: [productId]
+			values: [productId],
 		}
 
 		const result = await this._pool.query(query)
@@ -187,7 +187,7 @@ class ProductsService {
 	async verifyProductOwner(id, owner) {
 		const query = {
 			text: 'SELECT * FROM products WHERE id = $1',
-			values: [id]
+			values: [id],
 		}
 
 		const result = await this._pool.query(query)

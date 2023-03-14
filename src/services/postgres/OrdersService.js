@@ -5,7 +5,7 @@ const NotFoundError = require('../../exceptions/NotFoundError')
 const {
 	mapOrderItemsDBToModel,
 	mapOrderDBToModel,
-	mapOrdersDBToModel
+	mapOrdersDBToModel,
 } = require('../../utils')
 
 class OrdersService {
@@ -14,6 +14,8 @@ class OrdersService {
 	}
 
 	async addOrder({ userId, name, address, phone, items }) {
+		const date = new Date()
+		const year = date.getFullYear()
 		const generateInvoice = customAlphabet('1234567890', 10)
 
 		//* Check Stock */
@@ -21,26 +23,26 @@ class OrdersService {
       SELECT product_id, stock, sale
       FROM stocks 
       WHERE product_id
-      IN (${items.map(i => `'${i.productId}'`).join()})
+      IN (${items.map((i) => `'${i.productId}'`).join()})
     `)
 		const stocks = stocksQuery.rows
 
-		const itemsWithStock = items.map(item => ({
+		const itemsWithStock = items.map((item) => ({
 			...item,
-			stock: stocks.find(sp => sp.product_id === item.productId).stock,
-			sale: stocks.find(sp => sp.product_id === item.productId).sale
+			stock: stocks.find((sp) => sp.product_id === item.productId).stock,
+			sale: stocks.find((sp) => sp.product_id === item.productId).sale,
 		}))
 
 		const checkStock = itemsWithStock
-			.map(iws => +iws.stock - +iws.quantity)
-			.every(i => i >= 0)
+			.map((iws) => +iws.stock - +iws.quantity)
+			.every((i) => i >= 0)
 		if (!checkStock) {
 			throw new InvariantError('Transaksi gagal: Stok tidak cukup')
 		}
 
 		//* Order */
 		const id = `order-${nanoid(16)}`
-		const invoice = `INV${generateInvoice()}`
+		const invoice = `INV/${year}/${generateInvoice()}`
 		const createdAt = new Date().toUTCString()
 
 		const orderQuery = {
@@ -48,13 +50,13 @@ class OrdersService {
           INTO orders
           VALUES($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING id`,
-			values: [id, userId, invoice, name, address, phone, createdAt, createdAt]
+			values: [id, userId, invoice, name, address, phone, createdAt, createdAt],
 		}
 
 		const order = await this._pool.query(orderQuery)
 		const orderId = order.rows[0].id
 
-		await itemsWithStock.map(async item => {
+		await itemsWithStock.map(async (item) => {
 			const id = `orderItem-${nanoid(14)}`
 
 			await this._pool.query(`
@@ -76,8 +78,8 @@ class OrdersService {
 					item.quantity,
 					item.price,
 					createdAt,
-					createdAt
-				]
+					createdAt,
+				],
 			}
 
 			await this._pool.query(itemQuery)
@@ -93,7 +95,7 @@ class OrdersService {
         COUNT(orders.id) as total
         FROM orders
         WHERE user_id = $1`,
-			values: [userId]
+			values: [userId],
 		}
 
 		const numRows = await this._pool.query(recordQuery)
@@ -107,12 +109,12 @@ class OrdersService {
 			text: `SELECT
         orders.id, orders.invoice,
         orders.name, users.fullname as cashier,
-        TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as order_date,
+        TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as order_date
         FROM orders
         LEFT JOIN users ON users.id = orders.user_id
         WHERE user_id = $1
         LIMIT $2 OFFSET $3`,
-			values: [userId, limit, offset]
+			values: [userId, limit, offset],
 		}
 
 		const { rows } = await this._pool.query(query)
@@ -122,8 +124,8 @@ class OrdersService {
 			meta: {
 				page,
 				total,
-				totalPages
-			}
+				totalPages,
+			},
 		}
 	}
 
@@ -136,7 +138,7 @@ class OrdersService {
         FROM orders
         RIGHT JOIN users ON users.id = orders.user_id
         WHERE orders.id = $1`,
-			values: [orderId]
+			values: [orderId],
 		}
 
 		const result = await this._pool.query(query)
@@ -156,13 +158,13 @@ class OrdersService {
         FROM order_items
         LEFT JOIN products ON products.id = order_items.product_id
         WHERE order_items.order_id = $1`,
-			values: [orderId]
+			values: [orderId],
 		}
 		const items = await this._pool.query(itemsQuery)
 
 		return {
 			...result.rows.map(mapOrderDBToModel)[0],
-			items: items.rows.map(mapOrderItemsDBToModel)
+			items: items.rows.map(mapOrderItemsDBToModel),
 		}
 	}
 }
