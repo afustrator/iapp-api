@@ -80,7 +80,7 @@ After you setup the database and environment variable, run the migration table.
 npm run migrate up
 ```
 
-Run the server and it was ready to use at `http://localhost:3000`.
+Run the server and it was ready to use at `http://localhost:5000`.
 
 ```
 npm run dev
