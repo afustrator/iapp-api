@@ -9,8 +9,9 @@ const {
 } = require('../../utils')
 
 class OrdersService {
-	constructor() {
+	constructor(cacheService) {
 		this._pool = new Pool()
+		this._cacheService = cacheService
 	}
 
 	async addOrder({ userId, name, address, phone, items }) {
@@ -117,10 +118,11 @@ class OrdersService {
 			values: [userId, limit, offset],
 		}
 
-		const { rows } = await this._pool.query(query)
+		const result = await this._pool.query(query)
+		const dataOrders = result.rows.map(mapOrdersDBToModel)
 
 		return {
-			orders: rows.map(mapOrdersDBToModel),
+			orders: dataOrders,
 			meta: {
 				page,
 				total,
@@ -149,6 +151,8 @@ class OrdersService {
 			)
 		}
 
+		const order = result.rows.map(mapOrderDBToModel)[0]
+
 		const itemsQuery = {
 			text: `SELECT
         products.id, products.barcode, products.name,
@@ -161,10 +165,11 @@ class OrdersService {
 			values: [orderId],
 		}
 		const items = await this._pool.query(itemsQuery)
+		const itemsRow = items.rows.map(mapOrderItemsDBToModel)
 
 		return {
-			...result.rows.map(mapOrderDBToModel)[0],
-			items: items.rows.map(mapOrderItemsDBToModel),
+			...order,
+			items: itemsRow,
 		}
 	}
 }
