@@ -56,6 +56,7 @@ class ProductsService {
     }
 
     await this._cacheService.delete(`products:${owner}`)
+    await this._cacheService.delete(`product:${categoryId}`)
     return productId
   }
 
@@ -123,27 +124,45 @@ class ProductsService {
   }
 
   async getProductsByCategoryId({ categoryId }) {
-    const query = {
-      text: `SELECT
-      products.id, products.barcode, products.name,
-      stocks.stock, products.price, products.category_id,
-      TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
-      TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as input_date
-      FROM products
-      LEFT JOIN stocks ON stocks.product_id = products.id
-      LEFT JOIN categories ON categories.id = products.category_id
-      WHERE products.category_id = $1`,
-      values: [categoryId],
+    try {
+      const result = await this._cacheService.get(`product:${categoryId}`)
+      const product = JSON.parse(result)
+
+      return product
+    } catch (error) {
+      const query = {
+        text: `SELECT
+          products.id, products.barcode, products.name,
+          stocks.stock, products.price, products.category_id,
+          TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
+          TO_CHAR(products.input_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as input_date
+          FROM products
+          LEFT JOIN stocks ON stocks.product_id = products.id
+          LEFT JOIN categories ON categories.id = products.category_id
+          WHERE products.category_id = $1`,
+        values: [categoryId],
+      }
+
+      const result = await this._pool.query(query)
+      const product = result.rows.map(mapProductsDBToModel)
+      await this._cacheService.set(
+        `product:${categoryId}`,
+        JSON.stringify(product)
+      )
+
+      return product
     }
-
-    const result = await this._pool.query(query)
-
-    return result.rows.map(mapProductsDBToModel)
   }
 
   async getProductById(productId) {
-    const query = {
-      text: `SELECT
+    try {
+      const result = await this._cacheService.get(`productOne:${productId}`)
+      const product = JSON.parse(result)
+
+      return product
+    } catch (error) {
+      const query = {
+        text: `SELECT
       products.id, products.barcode, products.name,
       stocks.stock, products.price, products.category_id,
       TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
@@ -153,16 +172,23 @@ class ProductsService {
       FROM products
       LEFT JOIN stocks ON stocks.product_id = products.id
       WHERE products.id = $1`,
-      values: [productId],
+        values: [productId],
+      }
+
+      const result = await this._pool.query(query)
+
+      if (!result.rows.length) {
+        throw new NotFoundError('Gagal mendapatkan produk. Id tidak ditemukan')
+      }
+
+      const product = result.rows[0]
+      await this._cacheService.set(
+        `productOne:${productId}`,
+        JSON.stringify(product)
+      )
+
+      return product
     }
-
-    const result = await this._pool.query(query)
-
-    if (!result.rows.length) {
-      throw new NotFoundError('Gagal mendapatkan produk. Id tidak ditemukan')
-    }
-
-    return result.rows[0]
   }
 
   async updateProductById(productId, { name, stock, price }) {
@@ -191,8 +217,10 @@ class ProductsService {
       throw new NotFoundError('Gagal memperbarui produk. Id tidak ditemukan')
     }
 
-    const { owner } = result.rows[0]
+    const { owner, category_id: categoryId } = result.rows[0]
     await this._cacheService.delete(`products:${owner}`)
+    await this._cacheService.delete(`product:${categoryId}`)
+    await this._cacheService.delete(`productOne:${productId}`)
   }
 
   async deleteProductById(productId) {
@@ -210,8 +238,10 @@ class ProductsService {
       throw new NotFoundError('Gagal menghapus produk. Id tidak ditemukan')
     }
 
-    const { owner } = result.rows[0]
+    const { owner, category_id: categoryId } = result.rows[0]
     await this._cacheService.delete(`products:${owner}`)
+    await this._cacheService.delete(`product:${categoryId}`)
+    await this._cacheService.delete(`productOne:${productId}`)
   }
 
   async verifyProductOwner(id, owner) {
