@@ -33,6 +33,9 @@ const orders = require('./api/orders')
 const OrdersService = require('./services/postgres/OrdersService')
 const OrdersValidator = require('./validator/orders')
 
+/** Redis */
+const CacheService = require('./services/redis/CacheService')
+
 const server = Hapi.server({
   host: process.env.HOST || '0.0.0.0',
   port: process.env.PORT || 3000,
@@ -45,8 +48,9 @@ const server = Hapi.server({
 
 const init = async () => {
   /** Initialize Services */
+  const cacheService = new CacheService()
   const categoriesService = new CategoriesService()
-  const productsService = new ProductsService()
+  const productsService = new ProductsService(cacheService)
   const usersService = new UsersService()
   const authenticationsService = new AuthenticationsService()
   const ordersService = new OrdersService()
