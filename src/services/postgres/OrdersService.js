@@ -15,7 +15,24 @@ class OrdersService {
 	}
 
 	async addOrder({ userId, name, address, phone, items }) {
+		const months = [
+			'January',
+			'February',
+			'March',
+			'April',
+			'May',
+			'June',
+			'July',
+			'August',
+			'September',
+			'October',
+			'November',
+			'December',
+		]
+
 		const date = new Date()
+		const day = date.getDate()
+		const month = months[date.getMonth()]
 		const year = date.getFullYear()
 		const generateInvoice = customAlphabet('1234567890', 10)
 
@@ -43,7 +60,7 @@ class OrdersService {
 
 		//* Order */
 		const id = `order-${nanoid(16)}`
-		const invoice = `INV/${year}/${generateInvoice()}`
+		const invoice = `INV/${year}/${month}/${day}/${generateInvoice()}`
 		const createdAt = new Date().toUTCString()
 
 		const orderQuery = {
@@ -86,6 +103,7 @@ class OrdersService {
 			await this._pool.query(itemQuery)
 		})
 
+		await this._cacheService.delete(`orders:${userId}`)
 		return orderId
 	}
 
@@ -106,8 +124,23 @@ class OrdersService {
 		const totalPages = Math.ceil(total / limit)
 		const offset = limit * (page - 1)
 
-		const query = {
-			text: `SELECT
+		try {
+			const result = await this._cacheService.get(
+				`orders:${userId} limit:${limit} offset:${offset}`
+			)
+			const dataOrders = JSON.parse(result)
+
+			return {
+				orders: dataOrders,
+				meta: {
+					page,
+					total,
+					totalPages,
+				},
+			}
+		} catch (error) {
+			const query = {
+				text: `SELECT
         orders.id, orders.invoice,
         orders.name, users.fullname as cashier,
         TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as order_date
@@ -115,46 +148,63 @@ class OrdersService {
         LEFT JOIN users ON users.id = orders.user_id
         WHERE user_id = $1
         LIMIT $2 OFFSET $3`,
-			values: [userId, limit, offset],
-		}
+				values: [userId, limit, offset],
+			}
 
-		const result = await this._pool.query(query)
-		const dataOrders = result.rows.map(mapOrdersDBToModel)
+			const result = await this._pool.query(query)
+			const dataOrders = result.rows.map(mapOrdersDBToModel)
+			await this._cacheService.set(
+				`orders:${userId}`,
+				JSON.stringify(dataOrders)
+			)
 
-		return {
-			orders: dataOrders,
-			meta: {
-				page,
-				total,
-				totalPages,
-			},
+			return {
+				orders: dataOrders,
+				meta: {
+					page,
+					total,
+					totalPages,
+				},
+			}
 		}
 	}
 
 	async getOrderById(orderId) {
-		const query = {
-			text: `SELECT
+		try {
+			const resultOrder = await this._cacheService.get(`order:${orderId}`)
+			const resultItems = await this._cacheService.get(`items:${orderId}`)
+			const order = JSON.parse(resultOrder)
+			const itemsRow = JSON.parse(resultItems)
+
+			return {
+				...order,
+				items: itemsRow,
+			}
+		} catch (error) {
+			const query = {
+				text: `SELECT
         orders.id, users.fullname as cashier,
         orders.invoice, orders.name,
         orders.address, orders.phone
         FROM orders
         RIGHT JOIN users ON users.id = orders.user_id
         WHERE orders.id = $1`,
-			values: [orderId],
-		}
+				values: [orderId],
+			}
 
-		const result = await this._pool.query(query)
+			const result = await this._pool.query(query)
 
-		if (!result.rows.length) {
-			throw new NotFoundError(
-				'Gagal mendapatkan data order. Id tidak ditemukan'
-			)
-		}
+			if (!result.rows.length) {
+				throw new NotFoundError(
+					'Gagal mendapatkan data order. Id tidak ditemukan'
+				)
+			}
 
-		const order = result.rows.map(mapOrderDBToModel)[0]
+			const order = result.rows.map(mapOrderDBToModel)[0]
+			await this._cacheService.set(`order:${orderId}`, JSON.stringify(order))
 
-		const itemsQuery = {
-			text: `SELECT
+			const itemsQuery = {
+				text: `SELECT
         products.id, products.barcode, products.name,
         TO_CHAR(products.expire_date AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as expire_date,
         order_items.quantity, order_items.price,
@@ -162,14 +212,16 @@ class OrdersService {
         FROM order_items
         LEFT JOIN products ON products.id = order_items.product_id
         WHERE order_items.order_id = $1`,
-			values: [orderId],
-		}
-		const items = await this._pool.query(itemsQuery)
-		const itemsRow = items.rows.map(mapOrderItemsDBToModel)
+				values: [orderId],
+			}
+			const items = await this._pool.query(itemsQuery)
+			const itemsRow = items.rows.map(mapOrderItemsDBToModel)
+			await this._cacheService.set(`items:${orderId}`, JSON.stringify(itemsRow))
 
-		return {
-			...order,
-			items: itemsRow,
+			return {
+				...order,
+				items: itemsRow,
+			}
 		}
 	}
 }

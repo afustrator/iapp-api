@@ -5,118 +5,157 @@ const NotFoundError = require('../../exceptions/NotFoundError')
 const AuthorizationError = require('../../exceptions/AuthorizationError')
 const { mapCategoriesDBToModel, mapCategoryDBToModel } = require('../../utils')
 
+// On Progess: Cache in this service
+
 class CategoriesService {
-	constructor() {
-		this._pool = new Pool()
-	}
+  constructor(cacheService) {
+    this._pool = new Pool()
+    this._cacheService = cacheService
+  }
 
-	async addCategory({ name, owner }) {
-		const id = `category-${nanoid(24)}`
-		const createdAt = new Date().toUTCString()
+  async addCategory({ name, owner }) {
+    const id = `category-${nanoid(24)}`
+    const createdAt = new Date().toUTCString()
 
-		const query = {
-			text: `INSERT
+    const query = {
+      text: `INSERT
         INTO categories
         VALUES($1, $2, $3, $4, $5)
         RETURNING id`,
-			values: [id, name, owner, createdAt, createdAt]
-		}
+      values: [id, name, owner, createdAt, createdAt],
+    }
 
-		const result = await this._pool.query(query)
+    const result = await this._pool.query(query)
 
-		if (!result.rows[0].id) {
-			throw new InvariantError('Kategori gagal ditambahkan')
-		}
+    if (!result.rows[0].id) {
+      throw new InvariantError('Kategori gagal ditambahkan')
+    }
 
-		return result.rows[0].id
-	}
+    await this._cacheService.delete(`categories${owner}`)
+    return result.rows[0].id
+  }
 
-	async getCategories(owner) {
-		const query = {
-			text: `SELECT *
+  async getCategories(owner) {
+    try {
+      const result = await this._cacheService.get(`categories:${owner}`)
+      const categories = JSON.parse(result)
+
+      return categories
+    } catch (error) {
+      const query = {
+        text: `SELECT *
         FROM categories
         WHERE owner = $1`,
-			values: [owner]
-		}
+        values: [owner],
+      }
 
-		const result = await this._pool.query(query)
+      const result = await this._pool.query(query)
+      const categories = result.rows.map(mapCategoriesDBToModel)
+      await this._cacheService.set(
+        `categories:${owner}`,
+        JSON.stringify(categories)
+      )
 
-		return result.rows.map(mapCategoriesDBToModel)
-	}
+      return categories
+    }
+  }
 
-	async getCategoryById(categoryId) {
-		const query = {
-			text: `SELECT id, name, owner, 
+  async getCategoryById(categoryId) {
+    try {
+      const result = await this._cacheService.get(`category:${categoryId}`)
+      const category = JSON.parse(result)
+
+      return category
+    } catch (error) {
+      const query = {
+        text: `SELECT id, name, owner, 
 				TO_CHAR(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as created_at,
 				TO_CHAR(updated_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') as updated_at
         FROM categories
         WHERE id = $1`,
-			values: [categoryId]
-		}
+        values: [categoryId],
+      }
 
-		const result = await this._pool.query(query)
+      const result = await this._pool.query(query)
 
-		if (!result.rows.length) {
-			throw new NotFoundError('Gagal mendapatkan kategori. Id tidak ditemukan')
-		}
+      if (!result.rows.length) {
+        throw new NotFoundError(
+          'Gagal mendapatkan kategori. Id tidak ditemukan'
+        )
+      }
 
-		return result.rows.map(mapCategoryDBToModel)[0]
-	}
+      const category = result.rows.map(mapCategoryDBToModel)[0]
+      await this._cacheService.set(
+        `category:${categoryId}`,
+        JSON.stringify(category)
+      )
 
-	async updateCategoryById(categoryId, { name }) {
-		const updatedAt = new Date().toUTCString()
+      return category
+    }
+  }
 
-		const query = {
-			text: `UPDATE categories
+  async updateCategoryById(categoryId, { name }) {
+    const updatedAt = new Date().toUTCString()
+
+    const query = {
+      text: `UPDATE categories
         SET name = $1, updated_at = $2
         WHERE id = $3
         RETURNING id`,
-			values: [name, updatedAt, categoryId]
-		}
+      values: [name, updatedAt, categoryId],
+    }
 
-		const result = await this._pool.query(query)
+    const result = await this._pool.query(query)
 
-		if (!result.rows.length) {
-			throw new NotFoundError('Gagal memperbarui kategori. Id tidak ditemukan')
-		}
-	}
+    if (!result.rows.length) {
+      throw new NotFoundError('Gagal memperbarui kategori. Id tidak ditemukan')
+    }
 
-	async deleteCategoryById(categoryId) {
-		const query = {
-			text: `DELETE
+    const { owner } = result.rows[0]
+    await this._cacheService.delete(`categories:${owner}`)
+    await this._cacheService.delete(`category:${categoryId}`)
+  }
+
+  async deleteCategoryById(categoryId) {
+    const query = {
+      text: `DELETE
         FROM categories
         WHERE id = $1
         RETURNING id`,
-			values: [categoryId]
-		}
+      values: [categoryId],
+    }
 
-		const result = await this._pool.query(query)
+    const result = await this._pool.query(query)
 
-		if (!result.rows.length) {
-			throw new NotFoundError('Gagal menghapus kategori. Id tidak ditemukan')
-		}
-	}
+    if (!result.rows.length) {
+      throw new NotFoundError('Gagal menghapus kategori. Id tidak ditemukan')
+    }
 
-	async verifyCategoryOwner(id, owner) {
-		const query = {
-			text: `SELECT *
+    const { owner } = result.rows[0]
+    await this._cacheService.delete(`categories:${owner}`)
+    await this._cacheService.delete(`category:${categoryId}`)
+  }
+
+  async verifyCategoryOwner(id, owner) {
+    const query = {
+      text: `SELECT *
         FROM categories
         WHERE id = $1`,
-			values: [id]
-		}
+      values: [id],
+    }
 
-		const result = await this._pool.query(query)
+    const result = await this._pool.query(query)
 
-		if (!result.rows.length) {
-			throw new NotFoundError('Kategori tidak ditemukan')
-		}
+    if (!result.rows.length) {
+      throw new NotFoundError('Kategori tidak ditemukan')
+    }
 
-		const category = result.rows[0]
+    const category = result.rows[0]
 
-		if (category.owner !== owner) {
-			throw new AuthorizationError('Anda tidak berhak mengakses resource ini')
-		}
-	}
+    if (category.owner !== owner) {
+      throw new AuthorizationError('Anda tidak berhak mengakses resource ini')
+    }
+  }
 }
 
 module.exports = CategoriesService

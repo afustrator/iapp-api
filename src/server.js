@@ -49,11 +49,11 @@ const server = Hapi.server({
 const init = async () => {
   /** Initialize Services */
   const cacheService = new CacheService()
-  const categoriesService = new CategoriesService()
+  const categoriesService = new CategoriesService(cacheService)
   const productsService = new ProductsService(cacheService)
   const usersService = new UsersService()
   const authenticationsService = new AuthenticationsService()
-  const ordersService = new OrdersService()
+  const ordersService = new OrdersService(cacheService)
 
   /** Route Prefix */
   const prefix = (server.realm.modifiers.route.prefix = '/api/v1')
